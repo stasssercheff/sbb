@@ -27,7 +27,7 @@ function parseCSV(text) {
 // --- FIX: поддержка ДД.ММ и ДД.ММ.ГГГГ ---
 function parseDate(s) {
   if (!s) return null;
-  s = s.trim().replace(/\.$/, "").replace(/\s+$/, ""); // убираем точку в конце и пробелы
+  s = s.trim().replace(/\.$/, "").replace(/\s+$/, ""); // убираем точку и пробелы
 
   // dd.mm.yyyy
   let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
@@ -37,7 +37,6 @@ function parseDate(s) {
   m = s.match(/^(\d{1,2})\.(\d{1,2})$/);
   if (m) return new Date(new Date().getFullYear(), +m[2] - 1, +m[1]);
 
-  console.warn("⚠️ Не смог распарсить дату:", s);
   return null;
 }
 
@@ -57,7 +56,7 @@ async function loadSchedule() {
         const td = document.createElement("td");
         td.textContent = cell;
 
-        if (rIdx > 1) {
+        if (rIdx > 0 && cIdx > 0) {
           if (cell === "1") td.classList.add("shift-1");
           if (cell === "0") td.classList.add("shift-0");
           if (cell === "VR") td.classList.add("shift-VR");
@@ -78,27 +77,30 @@ function calculateSalary(periodStart, periodEnd) {
   console.log("▶️ Период:", periodStart, "-", periodEnd);
   const summary = {};
 
-  for (let r = 2; r < csvData.length; r++) {
-    const rawDate = csvData[r][0];
-    const date = parseDate(rawDate);
-    console.log("row", r, "raw=", rawDate, "parsed=", date);
+  const headerRow = csvData[0]; // первая строка — даты
 
-    if (!date) continue;
+  for (let r = 1; r < csvData.length; r++) {
+    const worker = csvData[r][0]?.trim();
+    if (!worker || !employees[worker]) continue;
 
-    if (date >= periodStart && date <= periodEnd) {
-      for (let c = 1; c < csvData[r].length; c++) {
-        let worker = csvData[1][c]?.trim();
-        if (!worker) worker = "Повар"; 
-        if (!employees[worker]) continue;
+    for (let c = 1; c < headerRow.length; c++) {
+      const rawDate = headerRow[c];
+      const date = parseDate(rawDate);
+      if (!date) continue;
 
-        if (csvData[r][c].trim() === "1") {
-          if (!summary[worker]) summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
+      if (date >= periodStart && date <= periodEnd) {
+        const shift = csvData[r][c].trim();
+        if (shift === "1") {
+          if (!summary[worker]) {
+            summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
+          }
           summary[worker].shifts++;
           summary[worker].total += employees[worker].rate;
         }
       }
     }
   }
+
   return summary;
 }
 
@@ -150,31 +152,44 @@ function generateScheduleImage() {
     end = new Date(year, month + 1, 0);
   }
 
-  // создаём временную таблицу только для выбранного периода
+  const headerRow = csvData[0];
   const table = document.createElement("table");
   const tbody = document.createElement("tbody");
 
-  // заголовок (строка с именами)
+  // заголовок
   const header = document.createElement("tr");
-  csvData[1].forEach(cell => {
-    const th = document.createElement("td");
-    th.textContent = cell;
-    header.appendChild(th);
-  });
+  const empty = document.createElement("td");
+  empty.textContent = "Сотрудник";
+  header.appendChild(empty);
+
+  for (let c = 1; c < headerRow.length; c++) {
+    const date = parseDate(headerRow[c]);
+    if (date && date >= start && date <= end) {
+      const th = document.createElement("td");
+      th.textContent = headerRow[c];
+      header.appendChild(th);
+    }
+  }
   tbody.appendChild(header);
 
-  // строки с датами в выбранном диапазоне
-  for (let r = 2; r < csvData.length; r++) {
-    const date = parseDate(csvData[r][0]);
-    if (date && date >= start && date <= end) {
-      const tr = document.createElement("tr");
-      csvData[r].forEach(cell => {
+  // строки сотрудников
+  for (let r = 1; r < csvData.length; r++) {
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = csvData[r][0];
+    tr.appendChild(tdName);
+
+    for (let c = 1; c < headerRow.length; c++) {
+      const date = parseDate(headerRow[c]);
+      if (date && date >= start && date <= end) {
         const td = document.createElement("td");
-        td.textContent = cell;
+        td.textContent = csvData[r][c];
         tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
+      }
     }
+
+    tbody.appendChild(tr);
   }
 
   table.appendChild(tbody);
@@ -185,7 +200,7 @@ function generateScheduleImage() {
     link.href = canvas.toDataURL("image/png");
     link.download = "schedule.png";
     link.click();
-    table.remove(); // убираем временную таблицу
+    table.remove();
   });
 }
 
