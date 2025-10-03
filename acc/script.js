@@ -27,13 +27,11 @@ function parseCSV(text) {
 // --- FIX: поддержка ДД.ММ и ДД.ММ.ГГГГ ---
 function parseDate(s) {
   if (!s) return null;
-  s = s.trim().replace(/\.$/, "").replace(/\s+$/, ""); // убираем точку и пробелы
+  s = s.trim().replace(/\.$/, "").replace(/\s+$/, "");
 
-  // dd.mm.yyyy
   let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
 
-  // dd.mm (без года → текущий год)
   m = s.match(/^(\d{1,2})\.(\d{1,2})$/);
   if (m) return new Date(new Date().getFullYear(), +m[2] - 1, +m[1]);
 
@@ -77,7 +75,7 @@ function calculateSalary(periodStart, periodEnd) {
   console.log("▶️ Период:", periodStart, "-", periodEnd);
   const summary = {};
 
-  const headerRow = csvData[0]; // первая строка — даты
+  const headerRow = csvData[0];
 
   for (let r = 1; r < csvData.length; r++) {
     const worker = csvData[r][0]?.trim();
@@ -137,7 +135,7 @@ function generateSalary() {
   document.getElementById("salarySummary").textContent = msg;
 }
 
-function generateScheduleImage() {
+function generateScheduleImage(sendToTelegram = false, callback = null) {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
 
@@ -168,7 +166,6 @@ function generateScheduleImage() {
       const th = document.createElement("td");
       th.textContent = headerRow[c];
       header.appendChild(th);
-    
     }
   }
   tbody.appendChild(header);
@@ -186,26 +183,49 @@ function generateScheduleImage() {
       if (date && date >= start && date <= end) {
         const td = document.createElement("td");
         td.textContent = csvData[r][c];
+
+        if (csvData[r][c] === "1") td.classList.add("shift-1");
+        if (csvData[r][c] === "0") td.classList.add("shift-0");
+        if (csvData[r][c] === "VR") td.classList.add("shift-VR");
+        if (csvData[r][c] === "Б") td.classList.add("shift-Б");
+
         tr.appendChild(td);
       }
     }
-
     tbody.appendChild(tr);
   }
 
   table.appendChild(tbody);
   document.body.appendChild(table);
 
-  html2canvas(table, { scale: 2 }).then(canvas => {
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = "schedule.png";
-    link.click();
+  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: null }).then(async canvas => {
+    if (sendToTelegram) {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      const formData = new FormData();
+      formData.append("chat_id", "-1003149716465");
+      formData.append("photo", blob, "schedule.png");
+
+      try {
+        await fetch("https://shbb1.stassser.workers.dev/", {
+          method: "POST",
+          body: formData
+        });
+      } catch (err) {
+        console.error("Ошибка отправки PNG:", err);
+      }
+    } else {
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "schedule.png";
+      link.click();
+    }
     table.remove();
+    if (callback) callback();
   });
 }
 
-async function sendSalaryMessage() {
+// ===== ОБЪЕДИНЕННАЯ ОТПРАВКА =====
+async function sendSalaryAndSchedule() {
   const msg = document.getElementById("salarySummary").textContent;
   if (!msg.trim()) {
     alert("Сначала сформируйте ЗП");
@@ -213,15 +233,22 @@ async function sendSalaryMessage() {
   }
 
   try {
+    // 1. Отправляем текст (ЗП)
     await fetch("https://shbb1.stassser.workers.dev/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: "-1003149716465", text: msg })
     });
-    alert("✅ ЗП отправлена");
+
+    // 2. Отправляем PNG
+    await new Promise(resolve => {
+      generateScheduleImage(true, resolve);
+    });
+
+    alert("✅ ЗП и график отправлены");
   } catch (err) {
     console.error(err);
-    alert("❌ Ошибка отправки");
+    alert("❌ Ошибка при отправке");
   }
 }
 
@@ -233,5 +260,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("generateBtn").addEventListener("click", generateSalary);
   document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
-  document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalaryMessage);
+  document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalaryAndSchedule);
 });
