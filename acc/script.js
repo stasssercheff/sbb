@@ -239,91 +239,12 @@ async function sendSalary() {
 // ================== ОТПРАВКА ГРАФИКА В ТЕЛЕГРАМ ==================
 
 
-async function sendScheduleImage() {
-  const month = +document.getElementById("monthSelect").value;
-  const half = document.getElementById("halfSelect").value;
-  const year = +document.getElementById("yearSelect").value;
-
-  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
-  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
-
-  // Создаём таблицу полностью в памяти
-  const headerRow = csvData[0];
-  const table = document.createElement("table");
-  table.style.backgroundColor = "#ffffff";
-  const tbody = document.createElement("tbody");
-
-  // Заголовок
-  const header = document.createElement("tr");
-  const empty = document.createElement("td");
-  empty.textContent = "Employee";
-  header.appendChild(empty);
-  for (let c = 1; c < headerRow.length; c++) {
-    const date = parseDate(headerRow[c]);
-    if (date && date >= start && date <= end) {
-      const th = document.createElement("td");
-      th.textContent = headerRow[c];
-      header.appendChild(th);
-    }
-  }
-  tbody.appendChild(header);
-
-  // Строки сотрудников
-  for (let r = 1; r < csvData.length; r++) {
-    const tr = document.createElement("tr");
-    const ruName = csvData[r][0].trim();
-    const en = employeesEN[ruName] || { name: ruName, position: "", rate: 0 };
-    const tdName = document.createElement("td");
-    tdName.textContent = en.name;
-    tr.appendChild(tdName);
-
-    for (let c = 1; c < headerRow.length; c++) {
-      const date = parseDate(headerRow[c]);
-      if (date && date >= start && date <= end) {
-        const td = document.createElement("td");
-        td.textContent = csvData[r][c];
-        if (csvData[r][c] === "1") td.style.backgroundColor = "#a6e6a6";
-        else if (csvData[r][c] === "0") td.style.backgroundColor = "#f0f0f0";
-        else if (csvData[r][c] === "VR") td.style.backgroundColor = "#ffd966";
-        else if (csvData[r][c] === "Б") td.style.backgroundColor = "#ff9999";
-        tr.appendChild(td);
-      }
-    }
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-
-  // canvas без добавления в DOM
-  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(async canvas => {
-    canvas.toBlob(async (blob) => {
-      const formData = new FormData();
-      formData.append("chat_id", "-1003149716465");
-      formData.append("photo", blob, "schedule.png");
-
-      try {
-        await fetch("https://shbb1.stassser.workers.dev/", {
-          method: "POST",
-          body: formData
-        });
-        alert("✅ Schedule image sent!");
-      } catch (err) {
-        console.error(err);
-        alert("❌ Error sending schedule image");
-      }
-    }, "image/png");
-  });
-}
-
-
-
 // ================== СТАРТ ==================
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("current-date").textContent = new Date().toLocaleDateString("ru-RU");
 
   loadSchedule();
 
-  document.getElementById("sendScheduleBtn").addEventListener("click", sendScheduleImage);
   document.getElementById("generateBtn").addEventListener("click", generateSalary);
   document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
   document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalary);
