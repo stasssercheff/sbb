@@ -71,6 +71,43 @@ td.today {
     color: #000 !important;
 }
 
+/* === Блок выбора периода (месяц + половина) === */
+.period-select-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    background-color: #f9f7f2; /* фон как у checklist-item */
+    padding: 8px 10px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    font-size: 14px;
+    margin: 15px;
+}
+
+.period-select-wrapper label {
+    font-weight: 600;
+    margin-right: 6px;
+    color: #333;
+}
+
+.period-select-wrapper select {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.period-select-wrapper select:focus {
+    outline: none;
+    border-color: #c1b29a; /* твой hover-акцент */
+    box-shadow: 0 0 3px rgba(193, 178, 154, 0.7);
+}
+
+/* === Контейнер кнопок под селектором === */
 .controls {
     display: flex;
     flex-wrap: wrap;
@@ -79,6 +116,20 @@ td.today {
     margin: 15px;
 }
 
+.controls button {
+    padding: 8px 12px;
+    border: none;
+    background-color: #d8cfc0;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.controls button:hover {
+    background-color: #c1b29a;
+}
+
+/* === Итоговый блок с зарплатой === */
 #salarySummary {
     background: #fff;
     padding: 15px;
