@@ -262,6 +262,3 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
   document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalaryAndSchedule);
 });
-
-я вернул этот код..прошлые твои правки сломали все..даже график не отображался..
-так что в этом коде начнем давай чтоб нажимая на кнопку "график" для получения пнг, пнг скачивался и был не чернобелым.
