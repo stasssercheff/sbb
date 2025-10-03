@@ -1108,5 +1108,10 @@
   "ru": "ЗП",
   "en": "Salary",
   "vi": "Lương"
- }  
+ },
+  "generate_salary": {
+  "ru": "Сформировать ЗП",
+  "en": "Generate salary",
+  "vi": "Tính lương"
+ }
 }
