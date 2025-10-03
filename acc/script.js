@@ -71,9 +71,7 @@ async function loadSchedule() {
 
 // ================== РАСЧЁТ ЗАРПЛАТЫ ==================
 function calculateSalary(periodStart, periodEnd) {
-  console.log("▶️ Период:", periodStart, "-", periodEnd);
   const summary = {};
-
   const headerRow = csvData[0];
 
   for (let r = 1; r < csvData.length; r++) {
@@ -88,9 +86,7 @@ function calculateSalary(periodStart, periodEnd) {
       if (date >= periodStart && date <= periodEnd) {
         const shift = csvData[r][c].trim();
         if (shift === "1") {
-          if (!summary[worker]) {
-            summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
-          }
+          if (!summary[worker]) summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
           summary[worker].shifts++;
           summary[worker].total += employees[worker].rate;
         }
@@ -117,10 +113,9 @@ function formatSalaryMessage(start, end, summary) {
 function generateSalary() {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
+  const year = +document.getElementById("yearSelect").value; // добавлен выбор года
 
-  const year = new Date().getFullYear();
   let start, end;
-
   if (half === "1") {
     start = new Date(year, month, 1);
     end = new Date(year, month, 15);
@@ -134,11 +129,11 @@ function generateSalary() {
   document.getElementById("salarySummary").textContent = msg;
 }
 
-// ================== ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ PNG ==================
+// ================== ГЕНЕРАЦИЯ PNG ==================
 function generateScheduleImage(sendToTelegram = false, callback = null) {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
-  const year = new Date().getFullYear();
+  const year = +document.getElementById("yearSelect").value; // выбор года
 
   let start, end;
   if (half === "1") {
@@ -180,7 +175,7 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
         const td = document.createElement("td");
         td.textContent = csvData[r][c];
 
-        // явные цвета для png
+        // явные цвета
         if (csvData[r][c] === "1") td.style.backgroundColor = "#a6e6a6";
         if (csvData[r][c] === "0") td.style.backgroundColor = "#fff7a6";
         if (csvData[r][c] === "VR") td.style.backgroundColor = "#00ffff";
@@ -203,20 +198,20 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
       formData.append("photo", blob, "schedule.png");
 
       try {
-        await fetch("https://shbb1.stassser.workers.dev/", {
-          method: "POST",
-          body: formData
-        });
+        await fetch("https://shbb1.stassser.workers.dev/", { method: "POST", body: formData });
       } catch (err) {
         console.error("Ошибка отправки PNG:", err);
       }
     } else {
       canvas.toBlob(blob => {
+        if (!blob) return;
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
         link.download = "schedule.png";
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }, "image/png");
     }
