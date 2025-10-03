@@ -7,7 +7,7 @@ const sendProfiles = {
   hall: ["ru", "en"],       // язык для hall
   kitchen: ["ru"],
   pastry: ["ru"],
-  extra1: ["vi"],
+  chef: ["ru"],
   extra2: ["ru"],
   extra3: ["ru"]
 };
