@@ -168,6 +168,7 @@ function generateScheduleImage() {
       const th = document.createElement("td");
       th.textContent = headerRow[c];
       header.appendChild(th);
+    
     }
   }
   tbody.appendChild(header);
