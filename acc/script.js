@@ -13,7 +13,7 @@ const employees = {
 
 let csvData = [];
 
-// ================== ВСПОМОГАТЕЛЬНЫЕ ==================
+// ================== УТИЛИТЫ ==================
 function cleanCell(cell) {
   if (!cell) return "";
   return String(cell).replace(/\r/g, "").replace(/^"|"$/g, "").trim();
@@ -26,8 +26,13 @@ function parseCSV(text) {
 
 function parseDate(s) {
   if (!s) return null;
-  const parts = s.split(".");
-  if (parts.length === 3) return new Date(+parts[2], +parts[1]-1, +parts[0]);
+  s = s.trim();
+  // dd.mm.yyyy
+  let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  // yyyy-mm-dd
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
   return null;
 }
 
@@ -38,26 +43,56 @@ async function loadSchedule() {
     const text = await resp.text();
     csvData = parseCSV(text);
 
-    const tableBody = document.getElementById("schedule").querySelector("tbody");
-    tableBody.innerHTML = "";
+    const table = document.getElementById("schedule");
+    table.innerHTML = "";
 
-    csvData.forEach((row, rIdx) => {
+    if (!csvData.length) {
+      table.innerHTML = "<tbody><tr><td>Нет данных</td></tr></tbody>";
+      return;
+    }
+
+    // шапка
+    const thead = document.createElement("thead");
+    const trHead = document.createElement("tr");
+    csvData[0].forEach(cell => {
+      const th = document.createElement("th");
+      th.textContent = cell || "";
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    // тело (начиная со второй строки)
+    const tbody = document.createElement("tbody");
+    for (let r = 1; r < csvData.length; r++) {
+      const row = csvData[r];
       const tr = document.createElement("tr");
       row.forEach((cell, cIdx) => {
         const td = document.createElement("td");
         td.textContent = cell;
 
-        if (rIdx > 1) {
+        if (r >= 1 && cIdx > 0) {
           if (cell === "1") td.classList.add("shift-1");
           if (cell === "0") td.classList.add("shift-0");
           if (cell === "VR") td.classList.add("shift-VR");
           if (cell === "Б") td.classList.add("shift-Б");
         }
 
+        // подсветка сегодняшней даты
+        if (cIdx === 0) {
+          const d = parseDate(cell);
+          const now = new Date();
+          if (d && d.getDate() === now.getDate() && d.getMonth() === now.getMonth()) {
+            td.classList.add("today");
+          }
+        }
+
         tr.appendChild(td);
       });
-      tableBody.appendChild(tr);
-    });
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+
   } catch (err) {
     console.error("Ошибка загрузки CSV:", err);
   }
@@ -66,22 +101,22 @@ async function loadSchedule() {
 // ================== РАСЧЁТ ЗАРПЛАТЫ ==================
 function calculateSalary(periodStart, periodEnd) {
   const summary = {};
+  if (csvData.length < 2) return summary;
 
-  for (let r = 2; r < csvData.length; r++) {
+  for (let r = 1; r < csvData.length; r++) {
     const date = parseDate(csvData[r][0]);
     if (!date) continue;
+    if (date < periodStart || date > periodEnd) continue;
 
-    if (date >= periodStart && date <= periodEnd) {
-      for (let c = 1; c < csvData[r].length; c++) {
-        let worker = csvData[1][c].trim();
-        if (!worker) worker = "Повар"; // пустые → "Повар"
-        if (!employees[worker]) continue;
+    for (let c = 1; c < csvData[r].length; c++) {
+      let worker = cleanCell(csvData[0][c]); // берём из первой строки
+      if (!worker) worker = "Повар";
+      if (!employees[worker]) continue;
 
-        if (csvData[r][c].trim() === "1") {
-          if (!summary[worker]) summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
-          summary[worker].shifts++;
-          summary[worker].total += employees[worker].rate;
-        }
+      if (csvData[r][c].trim() === "1") {
+        if (!summary[worker]) summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
+        summary[worker].shifts++;
+        summary[worker].total += employees[worker].rate;
       }
     }
   }
