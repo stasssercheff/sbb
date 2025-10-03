@@ -86,29 +86,26 @@ td.today {
 }
 
 
-/* Контейнер блока выбора периода */
+/* Контейнер блока выбора периода — центрируем весь блок */
 .period-select-wrapper {
     display: flex;
-    flex-wrap: wrap;          /* чтобы элементы переносились при необходимости */
-    justify-content: center;  /* центрируем весь блок */
-    gap: 10px 20px;           /* вертикальный и горизонтальный промежутки */
+    flex-direction: column;  /* каждая пара в столбец */
+    align-items: center;     /* центрируем блок по горизонтали */
+    gap: 10px;               /* расстояние между строками */
     background-color: #f9f7f2;
-    padding: 10px 15px;
+    padding: 15px 20px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     font-size: 14px;
-    margin: 15px auto;        /* авто по бокам для центрирования */
+    margin: 15px auto;
+    min-width: 250px;        /* минимальная ширина блока */
 }
 
-/* Каждая пара label + select */
-.period-select-wrapper label,
-.period-select-wrapper select {
-    display: inline-block;
-    vertical-align: middle;
-}
-
+/* Каждая строка — flex-контейнер для label + select */
 .period-select-wrapper label {
-    margin-right: 6px;
+    width: 100px;           /* фиксированная ширина label */
+    text-align: right;      /* выравнивание текста label по правому краю */
+    margin-right: 10px;
     font-weight: 600;
     color: #333;
 }
@@ -122,6 +119,18 @@ td.today {
     cursor: pointer;
     min-width: 120px;
 }
+
+/* Каждую пару label + select помещаем в flex-строку */
+.period-select-wrapper > label:nth-of-type(1),
+.period-select-wrapper > select:nth-of-type(1),
+.period-select-wrapper > label:nth-of-type(2),
+.period-select-wrapper > select:nth-of-type(2),
+.period-select-wrapper > label:nth-of-type(3),
+.period-select-wrapper > select:nth-of-type(3) {
+    display: inline-flex;
+    width: auto;
+}
+
 
 
 
