@@ -24,7 +24,7 @@ function parseCSV(text) {
   return text.trim().split("\n").map(r => r.split(delimiter).map(cleanCell));
 }
 
-// --- FIX: поддержка ДД.ММ и ДД.ММ.ГГГГ ---
+// --- Поддержка формата ДД.ММ и ДД.ММ.ГГГГ ---
 function parseDate(s) {
   if (!s) return null;
   s = s.trim().replace(/\.$/, "").replace(/\s+$/, "");
@@ -38,7 +38,7 @@ function parseDate(s) {
   return null;
 }
 
-// ================== ОТОБРАЖЕНИЕ ГРАФИКА ==================
+// ================== ЗАГРУЗКА ГРАФИКА ==================
 async function loadSchedule() {
   try {
     const resp = await fetch(CSV_URL);
@@ -66,15 +66,13 @@ async function loadSchedule() {
       tableBody.appendChild(tr);
     });
   } catch (err) {
-    console.error("Ошибка загрузки CSV:", err);
+    console.error("Error loading CSV:", err);
   }
 }
 
 // ================== РАСЧЁТ ЗАРПЛАТЫ ==================
 function calculateSalary(periodStart, periodEnd) {
-  console.log("▶️ Период:", periodStart, "-", periodEnd);
   const summary = {};
-
   const headerRow = csvData[0];
 
   for (let r = 1; r < csvData.length; r++) {
@@ -89,9 +87,7 @@ function calculateSalary(periodStart, periodEnd) {
       if (date >= periodStart && date <= periodEnd) {
         const shift = csvData[r][c].trim();
         if (shift === "1") {
-          if (!summary[worker]) {
-            summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
-          }
+          if (!summary[worker]) summary[worker] = { shifts: 0, rate: employees[worker].rate, total: 0 };
           summary[worker].shifts++;
           summary[worker].total += employees[worker].rate;
         }
@@ -102,15 +98,16 @@ function calculateSalary(periodStart, periodEnd) {
   return summary;
 }
 
-function formatSalaryMessage(start, end, summary) {
-  let msg = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\n\n`;
+// ================== АНГЛИЙСКИЙ ТЕКСТ ЗП ==================
+function formatSalaryMessageEN(start, end, summary) {
+  let msg = `Salary report for the period ${start.toLocaleDateString('en-GB')} - ${end.toLocaleDateString('en-GB')}\n\n`;
   let total = 0;
   for (let w in summary) {
     const s = summary[w];
-    msg += `${w} (${employees[w].position})\nСмен: ${s.shifts}\nСтавка: ${s.rate}\nК выплате: ${s.total}\n\n`;
+    msg += `${w} (${employees[w].position})\nShifts: ${s.shifts}\nRate: ${s.rate}\nTotal: ${s.total}\n\n`;
     total += s.total;
   }
-  msg += `Итого к выплате: ${total}`;
+  msg += `Total payout: ${total}`;
   return msg;
 }
 
@@ -118,46 +115,33 @@ function formatSalaryMessage(start, end, summary) {
 function generateSalary() {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
-
   const year = new Date().getFullYear();
-  let start, end;
 
-  if (half === "1") {
-    start = new Date(year, month, 1);
-    end = new Date(year, month, 15);
-  } else {
-    start = new Date(year, month, 16);
-    end = new Date(year, month + 1, 0);
-  }
+  let start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  let end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
 
   const summary = calculateSalary(start, end);
-  const msg = formatSalaryMessage(start, end, summary);
+  const msg = formatSalaryMessageEN(start, end, summary);
   document.getElementById("salarySummary").textContent = msg;
 }
 
+// ================== СОХРАНЕНИЕ PNG ГРАФИКА ==================
 function generateScheduleImage(sendToTelegram = false, callback = null) {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
-
   const year = new Date().getFullYear();
-  let start, end;
 
-  if (half === "1") {
-    start = new Date(year, month, 1);
-    end = new Date(year, month, 15);
-  } else {
-    start = new Date(year, month, 16);
-    end = new Date(year, month + 1, 0);
-  }
+  let start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  let end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
 
   const headerRow = csvData[0];
   const table = document.createElement("table");
   const tbody = document.createElement("tbody");
 
-  // заголовок
+  // Заголовок
   const header = document.createElement("tr");
   const empty = document.createElement("td");
-  empty.textContent = "Сотрудник";
+  empty.textContent = "Employee";
   header.appendChild(empty);
 
   for (let c = 1; c < headerRow.length; c++) {
@@ -170,10 +154,9 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
   }
   tbody.appendChild(header);
 
-  // строки сотрудников
+  // Строки сотрудников
   for (let r = 1; r < csvData.length; r++) {
     const tr = document.createElement("tr");
-
     const tdName = document.createElement("td");
     tdName.textContent = csvData[r][0];
     tr.appendChild(tdName);
@@ -198,67 +181,53 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
   table.appendChild(tbody);
   document.body.appendChild(table);
 
-  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: null }).then(async canvas => {
-    if (sendToTelegram) {
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-      const formData = new FormData();
-      formData.append("chat_id", "-1003149716465");
-      formData.append("photo", blob, "schedule.png");
-
-      try {
-        await fetch("https://shbb1.stassser.workers.dev/", {
-          method: "POST",
-          body: formData
-        });
-      } catch (err) {
-        console.error("Ошибка отправки PNG:", err);
-      }
-    } else {
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "schedule.png";
-      link.click();
-    }
+  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: null }).then(canvas => {
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = "schedule.png";
+    link.click();
     table.remove();
     if (callback) callback();
   });
 }
 
-// ===== ОБЪЕДИНЕННАЯ ОТПРАВКА =====
-async function sendSalaryAndSchedule() {
-  const msg = document.getElementById("salarySummary").textContent;
+// ================== ОТПРАВКА ТОЛЬКО ТЕКСТА ==================
+async function sendSalary() {
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+  const year = new Date().getFullYear();
+
+  let start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  let end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+
+  const summary = calculateSalary(start, end);
+  const msg = formatSalaryMessageEN(start, end, summary);
+
   if (!msg.trim()) {
-    alert("Сначала сформируйте ЗП");
+    alert("Please generate the salary first");
     return;
   }
 
   try {
-    // 1. Отправляем текст (ЗП)
     await fetch("https://shbb1.stassser.workers.dev/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: "-1003149716465", text: msg })
     });
-
-    // 2. Отправляем PNG
-    await new Promise(resolve => {
-      generateScheduleImage(true, resolve);
-    });
-
-    alert("✅ ЗП и график отправлены");
+    alert("✅ Salary report sent");
   } catch (err) {
     console.error(err);
-    alert("❌ Ошибка при отправке");
+    alert("❌ Error sending salary report");
   }
 }
 
 // ================== СТАРТ ==================
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("current-date").textContent = new Date().toLocaleDateString("ru-RU");
+  document.getElementById("current-date").textContent = new Date().toLocaleDateString("en-GB");
 
   loadSchedule();
 
   document.getElementById("generateBtn").addEventListener("click", generateSalary);
   document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
-  document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalaryAndSchedule);
+  document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalary); // теперь только текст
 });
