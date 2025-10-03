@@ -236,12 +236,41 @@ async function sendSalary() {
   }
 }
 
+async function sendScheduleImage() {
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+  const year = new Date().getFullYear();
+
+  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+
+  generateScheduleImage(async (canvas) => {
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    const formData = new FormData();
+    formData.append("chat_id", "-1003149716465");
+    formData.append("photo", blob, "schedule.png");
+
+    try {
+      await fetch("https://shbb1.stassser.workers.dev/", {
+        method: "POST",
+        body: formData
+      });
+      alert("✅ Schedule image sent!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error sending schedule image");
+    }
+  });
+}
+
+
 // ================== СТАРТ ==================
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("current-date").textContent = new Date().toLocaleDateString("ru-RU");
 
   loadSchedule();
 
+  document.getElementById("sendScheduleBtn").addEventListener("click", sendScheduleImage);
   document.getElementById("generateBtn").addEventListener("click", generateSalary);
   document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
   document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalary);
