@@ -24,19 +24,20 @@ function parseCSV(text) {
   return text.trim().split("\n").map(r => r.split(delimiter).map(cleanCell));
 }
 
-// --- Фикс: поддержка формата ДД.ММ и ДД.ММ.ГГГГ ---
+// --- FIX: поддержка ДД.ММ и ДД.ММ.ГГГГ ---
 function parseDate(s) {
   if (!s) return null;
-  s = s.trim();
+  s = s.trim().replace(/\.$/, "").replace(/\s+$/, ""); // убираем точку в конце и пробелы
 
   // dd.mm.yyyy
   let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
 
-  // dd.mm (без года → берём текущий год)
+  // dd.mm (без года → текущий год)
   m = s.match(/^(\d{1,2})\.(\d{1,2})$/);
   if (m) return new Date(new Date().getFullYear(), +m[2] - 1, +m[1]);
 
+  console.warn("⚠️ Не смог распарсить дату:", s);
   return null;
 }
 
@@ -74,16 +75,20 @@ async function loadSchedule() {
 
 // ================== РАСЧЁТ ЗАРПЛАТЫ ==================
 function calculateSalary(periodStart, periodEnd) {
+  console.log("▶️ Период:", periodStart, "-", periodEnd);
   const summary = {};
 
   for (let r = 2; r < csvData.length; r++) {
-    const date = parseDate(csvData[r][0]);
+    const rawDate = csvData[r][0];
+    const date = parseDate(rawDate);
+    console.log("row", r, "raw=", rawDate, "parsed=", date);
+
     if (!date) continue;
 
     if (date >= periodStart && date <= periodEnd) {
       for (let c = 1; c < csvData[r].length; c++) {
-        let worker = csvData[1][c].trim();
-        if (!worker) worker = "Повар"; // пустые → "Повар"
+        let worker = csvData[1][c]?.trim();
+        if (!worker) worker = "Повар"; 
         if (!employees[worker]) continue;
 
         if (csvData[r][c].trim() === "1") {
@@ -131,12 +136,56 @@ function generateSalary() {
 }
 
 function generateScheduleImage() {
-  const table = document.getElementById("schedule");
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+
+  const year = new Date().getFullYear();
+  let start, end;
+
+  if (half === "1") {
+    start = new Date(year, month, 1);
+    end = new Date(year, month, 15);
+  } else {
+    start = new Date(year, month, 16);
+    end = new Date(year, month + 1, 0);
+  }
+
+  // создаём временную таблицу только для выбранного периода
+  const table = document.createElement("table");
+  const tbody = document.createElement("tbody");
+
+  // заголовок (строка с именами)
+  const header = document.createElement("tr");
+  csvData[1].forEach(cell => {
+    const th = document.createElement("td");
+    th.textContent = cell;
+    header.appendChild(th);
+  });
+  tbody.appendChild(header);
+
+  // строки с датами в выбранном диапазоне
+  for (let r = 2; r < csvData.length; r++) {
+    const date = parseDate(csvData[r][0]);
+    if (date && date >= start && date <= end) {
+      const tr = document.createElement("tr");
+      csvData[r].forEach(cell => {
+        const td = document.createElement("td");
+        td.textContent = cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    }
+  }
+
+  table.appendChild(tbody);
+  document.body.appendChild(table);
+
   html2canvas(table, { scale: 2 }).then(canvas => {
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
     link.download = "schedule.png";
     link.click();
+    table.remove(); // убираем временную таблицу
   });
 }
 
