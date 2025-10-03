@@ -15,7 +15,7 @@ const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
   "Максим": { name: "Maxim", position: "Cook", rate: 650 },
   "Борис": { name: "Boris", position: "Cook", rate: 600 },
-  "Miguel": { name: "Miguel", position: "Cook", rate: 600 },
+  "Мигель": { name: "Miguel", position: "Cook", rate: 600 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 650 },
   "Тимофей": { name: "Timofey", position: "Pastry", rate: 650 }
 };
