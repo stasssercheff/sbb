@@ -71,13 +71,20 @@ td.today {
     color: #000 !important;
 }
 
-/* === Текущая дата сверху (центрируем) === */
+/* Контейнер для даты — центрируем */
 .date-container {
+    width: 100%;
+    display: flex;
+    justify-content: center; /* центр по горизонтали */
+    margin: 15px 0;
+}
+
+.date-wrapper {
     text-align: center;
     font-size: 16px;
     font-weight: 600;
-    margin: 15px 0;
 }
+
 
 /* === Блок выбора периода (год + месяц + период) на отдельные строки === */
 .period-select-wrapper {
