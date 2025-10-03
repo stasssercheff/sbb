@@ -86,23 +86,32 @@ td.today {
 }
 
 
-/* === Блок выбора периода (год + месяц + период) на отдельные строки === */
+/* Контейнер всего блока выбора */
 .period-select-wrapper {
     display: flex;
-    flex-direction: column; /* каждый элемент в столбец */
-    align-items: flex-start; /* выравнивание по левому краю */
-    gap: 8px; /* расстояние между строками */
+    flex-direction: column; /* строки одна под другой */
+    align-items: center; /* весь блок по центру */
+    gap: 10px; /* расстояние между строками */
     background-color: #f9f7f2;
     padding: 10px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     font-size: 14px;
-    margin: 15px;
+    margin: 15px auto; /* центрируем блок по горизонтали */
 }
 
+/* Каждая строка — label + select */
+.period-row {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* расстояние между label и select */
+}
+
+/* Стили label и select */
 .period-select-wrapper label {
     font-weight: 600;
     color: #333;
+    min-width: 60px; /* чтобы выровнять по ширине */
 }
 
 .period-select-wrapper select {
@@ -120,6 +129,7 @@ td.today {
     border-color: #c1b29a;
     box-shadow: 0 0 3px rgba(193, 178, 154, 0.7);
 }
+
 
 
 /* === Контейнер кнопок под селектором === */
