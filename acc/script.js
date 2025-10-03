@@ -4,7 +4,7 @@ const employees = {
   "Стас": { position: "Шеф", rate: 1300 },
   "Максим": { position: "Повар", rate: 650 },
   "Борис": { position: "Повар", rate: 600 },
-  "Повар (без имени)": { position: "Повар", rate: 600 },
+  "Повар": { position: "Повар", rate: 600 },
   "Ирина": { position: "Кондитер", rate: 650 },
   "Тимофей": { position: "Кондитер", rate: 650 }
 };
