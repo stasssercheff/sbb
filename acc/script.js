@@ -24,7 +24,6 @@ function parseCSV(text) {
   return text.trim().split("\n").map(r => r.split(delimiter).map(cleanCell));
 }
 
-// --- FIX: поддержка ДД.ММ и ДД.ММ.ГГГГ ---
 function parseDate(s) {
   if (!s) return null;
   s = s.trim().replace(/\.$/, "").replace(/\s+$/, "");
@@ -135,13 +134,13 @@ function generateSalary() {
   document.getElementById("salarySummary").textContent = msg;
 }
 
+// ================== ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ PNG ==================
 function generateScheduleImage(sendToTelegram = false, callback = null) {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
-
   const year = new Date().getFullYear();
-  let start, end;
 
+  let start, end;
   if (half === "1") {
     start = new Date(year, month, 1);
     end = new Date(year, month, 15);
@@ -154,7 +153,6 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
   const table = document.createElement("table");
   const tbody = document.createElement("tbody");
 
-  // заголовок
   const header = document.createElement("tr");
   const empty = document.createElement("td");
   empty.textContent = "Сотрудник";
@@ -170,10 +168,8 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
   }
   tbody.appendChild(header);
 
-  // строки сотрудников
   for (let r = 1; r < csvData.length; r++) {
     const tr = document.createElement("tr");
-
     const tdName = document.createElement("td");
     tdName.textContent = csvData[r][0];
     tr.appendChild(tdName);
@@ -184,10 +180,11 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
         const td = document.createElement("td");
         td.textContent = csvData[r][c];
 
-        if (csvData[r][c] === "1") td.classList.add("shift-1");
-        if (csvData[r][c] === "0") td.classList.add("shift-0");
-        if (csvData[r][c] === "VR") td.classList.add("shift-VR");
-        if (csvData[r][c] === "Б") td.classList.add("shift-Б");
+        // явные цвета для png
+        if (csvData[r][c] === "1") td.style.backgroundColor = "#a6e6a6";
+        if (csvData[r][c] === "0") td.style.backgroundColor = "#fff7a6";
+        if (csvData[r][c] === "VR") td.style.backgroundColor = "#00ffff";
+        if (csvData[r][c] === "Б") td.style.backgroundColor = "#cce0ff";
 
         tr.appendChild(td);
       }
@@ -198,7 +195,7 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
   table.appendChild(tbody);
   document.body.appendChild(table);
 
-  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: null }).then(async canvas => {
+  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(async canvas => {
     if (sendToTelegram) {
       const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
       const formData = new FormData();
@@ -214,11 +211,16 @@ function generateScheduleImage(sendToTelegram = false, callback = null) {
         console.error("Ошибка отправки PNG:", err);
       }
     } else {
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "schedule.png";
-      link.click();
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "schedule.png";
+        link.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
     }
+
     table.remove();
     if (callback) callback();
   });
@@ -233,14 +235,12 @@ async function sendSalaryAndSchedule() {
   }
 
   try {
-    // 1. Отправляем текст (ЗП)
     await fetch("https://shbb1.stassser.workers.dev/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: "-1003149716465", text: msg })
     });
 
-    // 2. Отправляем PNG
     await new Promise(resolve => {
       generateScheduleImage(true, resolve);
     });
