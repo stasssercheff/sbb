@@ -129,6 +129,14 @@ td.today {
     background-color: #c1b29a;
 }
 
+/* === Текущая дата сверху === */
+#current-date {
+    text-align: center; /* выравнивание по центру */
+    font-size: 16px;
+    font-weight: 600;
+    margin: 10px 0;
+}
+
 /* === Итоговый блок с зарплатой === */
 #salarySummary {
     background: #fff;
@@ -137,5 +145,7 @@ td.today {
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     white-space: pre-wrap;
-    font-family: monospace;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* теперь как остальная страница */
+    font-size: 14px;
+    color: #333;
 }
