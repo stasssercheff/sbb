@@ -1483,5 +1483,10 @@
   "ru": "Портал Шефа",
   "en": "Chef's Portal",
   "vi": "Cổng thông tin của Bếp trưởng"
- }
+ },
+  "salary": {
+  "ru": "Зарплата",
+  "en": "Salary",
+  "vi": "Lương"
+ }  
 }
