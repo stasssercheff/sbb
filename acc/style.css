@@ -92,34 +92,30 @@ td.today {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px; /* расстояние между строками */
     background-color: #f9f7f2;
-    padding: 20px 25px;
-    border-radius: 8px;
+    padding: 15px 20px;
+    border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     font-size: 14px;
     margin: 20px auto;
-    width: 100%;
-    max-width: 420px; /* ← делаем контейнер шире */
+    width: fit-content; /* подстраивается под содержимое */
+    min-width: 280px;
 }
 
-/* Каждая строка — label + select */
-.period-select-wrapper label,
-.period-select-wrapper select {
-    display: inline-block;
-    vertical-align: middle;
-}
-
+/* Каждая пара label + select в одну строку */
 .period-select-wrapper label {
-    width: 120px;      /* ширина колонки с подписями */
-    text-align: right; /* подписи выравниваем по правому краю */
+    display: inline-block;
+    width: 90px;       /* ширина подписи */
+    text-align: right;
+    margin-right: 10px;
     font-weight: 600;
     color: #333;
-    margin-right: 10px;
 }
 
 .period-select-wrapper select {
-    width: 160px; /* селектор чуть шире */
+    display: inline-block;
+    width: 150px; /* одинаковая ширина селекторов */
     padding: 6px 10px;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -128,27 +124,12 @@ td.today {
     cursor: pointer;
 }
 
-/* Делаем строки визуально ровными */
-.period-select-wrapper label[for],
+/* Делаем, чтобы всё стояло по центру */
+.period-select-wrapper label,
 .period-select-wrapper select {
-    line-height: 1.6;
+    vertical-align: middle;
 }
 
-/* Адаптив — на телефонах ничего не ломается */
-@media (max-width: 480px) {
-    .period-select-wrapper {
-        max-width: 100%;
-        padding: 15px;
-    }
-    .period-select-wrapper label {
-        width: 100px;
-        font-size: 13px;
-    }
-    .period-select-wrapper select {
-        width: 150px;
-        font-size: 13px;
-    }
-}
 
 
 
