@@ -89,47 +89,75 @@ td.today {
 /* Контейнер блока выбора периода — центрируем весь блок */
 .period-select-wrapper {
     display: flex;
-    flex-direction: column;  /* каждая пара в столбец */
+    flex-direction: column;  /* каждая пара в строку */
     align-items: center;     /* центрируем блок по горизонтали */
     gap: 10px;               /* расстояние между строками */
     background-color: #f9f7f2;
-    padding: 15px 20px;
+    padding: 12px 15px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    font-size: 14px;
+    font-size: 14px;         /* умеренный шрифт */
     margin: 15px auto;
-    min-width: 250px;        /* минимальная ширина блока */
+    min-width: 200px;
+    max-width: 300px;        /* чтобы на телефоне не растягивался */
 }
 
-/* Каждая строка — flex-контейнер для label + select */
+/* Каждая пара label + select */
+.period-select-wrapper label,
+.period-select-wrapper select {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Label фиксированной ширины */
 .period-select-wrapper label {
-    width: 100px;           /* фиксированная ширина label */
-    text-align: right;      /* выравнивание текста label по правому краю */
-    margin-right: 10px;
+    width: 80px;           
+    text-align: right;
     font-weight: 600;
     color: #333;
+    font-size: 14px;
+    margin-right: 8px;
 }
 
+/* Селекторы */
 .period-select-wrapper select {
-    padding: 6px 10px;
+    min-width: 120px;
+    max-width: 150px;
+    padding: 5px 8px;
+    font-size: 14px;
     border: 1px solid #ccc;
     border-radius: 6px;
     background: #fff;
-    font-size: 14px;
     cursor: pointer;
-    min-width: 120px;
 }
 
-/* Каждую пару label + select помещаем в flex-строку */
-.period-select-wrapper > label:nth-of-type(1),
-.period-select-wrapper > select:nth-of-type(1),
-.period-select-wrapper > label:nth-of-type(2),
-.period-select-wrapper > select:nth-of-type(2),
-.period-select-wrapper > label:nth-of-type(3),
-.period-select-wrapper > select:nth-of-type(3) {
-    display: inline-flex;
+/* Каждая пара в строку */
+.period-select-wrapper label + select {
+    display: inline-block;
     width: auto;
 }
+
+/* Адаптив для телефонов */
+@media (max-width: 480px) {
+    .period-select-wrapper {
+        min-width: 180px;
+        max-width: 220px;
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+    .period-select-wrapper label {
+        width: 70px;
+        font-size: 13px;
+        margin-right: 6px;
+    }
+    .period-select-wrapper select {
+        min-width: 90px;
+        max-width: 130px;
+        font-size: 13px;
+        padding: 4px 6px;
+    }
+}
+
 
 
 
