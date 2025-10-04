@@ -86,38 +86,68 @@ td.today {
 }
 
 
-/* Контейнер блока выбора периода — центрируем весь блок */
+/* === Контейнер выбора периода === */
 .period-select-wrapper {
     display: flex;
-    flex-direction: column;  /* каждая пара в столбец */
-    align-items: center;     /* центрируем блок по горизонтали */
-    gap: 10px;               /* расстояние между строками */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
     background-color: #f9f7f2;
-    padding: 15px 20px;
-    border-radius: 6px;
+    padding: 20px 25px;
+    border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     font-size: 14px;
-    margin: 15px auto;
-    min-width: 350px;        /* минимальная ширина блока */
+    margin: 20px auto;
+    width: 100%;
+    max-width: 420px; /* ← делаем контейнер шире */
 }
 
-/* Каждая строка — flex-контейнер для label + select */
+/* Каждая строка — label + select */
+.period-select-wrapper label,
+.period-select-wrapper select {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .period-select-wrapper label {
-    width: 100px;           /* фиксированная ширина label */
-    text-align: right;      /* выравнивание текста label по правому краю */
-    margin-right: 10px;
+    width: 120px;      /* ширина колонки с подписями */
+    text-align: right; /* подписи выравниваем по правому краю */
     font-weight: 600;
     color: #333;
+    margin-right: 10px;
 }
 
 .period-select-wrapper select {
+    width: 160px; /* селектор чуть шире */
     padding: 6px 10px;
     border: 1px solid #ccc;
     border-radius: 6px;
     background: #fff;
     font-size: 14px;
     cursor: pointer;
-    min-width: 80px;
+}
+
+/* Делаем строки визуально ровными */
+.period-select-wrapper label[for],
+.period-select-wrapper select {
+    line-height: 1.6;
+}
+
+/* Адаптив — на телефонах ничего не ломается */
+@media (max-width: 480px) {
+    .period-select-wrapper {
+        max-width: 100%;
+        padding: 15px;
+    }
+    .period-select-wrapper label {
+        width: 100px;
+        font-size: 13px;
+    }
+    .period-select-wrapper select {
+        width: 150px;
+        font-size: 13px;
+    }
 }
 
 
