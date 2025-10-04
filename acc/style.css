@@ -91,15 +91,15 @@ td.today {
     display: flex;
     flex-direction: column;   /* каждая пара в отдельную строку */
     align-items: center;      /* центрируем блок по горизонтали */
-    gap: 10px;                /* расстояние между строками */
+    gap: 12px;                /* расстояние между строками */
     background-color: #f9f7f2;
-    padding: 12px 15px;
+    padding: 15px 20px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     font-size: 14px;
     margin: 15px auto;
     width: 100%;
-    max-width: 280px;         /* блок не будет растягиваться сильно */
+    max-width: 360px;         /* шире, чем было */
 }
 
 /* Каждая строка: label + select */
@@ -108,10 +108,10 @@ td.today {
     justify-content: flex-start; /* лейбл слева, селектор справа */
     align-items: center;
     width: 100%;
-    gap: 10px;
+    gap: 12px;                  /* расстояние между лейблом и селектором */
 }
 
-/* Label фиксированной ширины, чтобы выравнивать по вертикали */
+/* Label фиксированной ширины */
 .period-select-wrapper .period-row label {
     width: 80px;
     text-align: right;
@@ -130,32 +130,29 @@ td.today {
     cursor: pointer;
 }
 
-
-
-
-
-
-/* === Контейнер кнопок под селектором === */
+/* Контейнер кнопок под селектором */
 .controls {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
+    justify-content: center;  /* центрируем кнопки */
+    gap: 12px;                /* расстояние между кнопками */
     margin: 15px;
 }
 
 .controls button {
-    padding: 8px 12px;
+    padding: 8px 14px;
     border: none;
     background-color: #d8cfc0;
     cursor: pointer;
     border-radius: 6px;
     font-weight: 600;
+    font-size: 14px;
 }
 
 .controls button:hover {
     background-color: #c1b29a;
 }
+
 
 /* === Текущая дата сверху === */
 #current-date {
