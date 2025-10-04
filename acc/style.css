@@ -86,73 +86,75 @@ td.today {
 }
 
 
-/* Контейнер блока выбора периода */
+/* Контейнер блока выбора периода — центрируем весь блок */
 .period-select-wrapper {
     display: flex;
-    flex-direction: column;   /* каждая пара в отдельную строку */
-    align-items: center;      /* центрируем блок по горизонтали */
-    gap: 12px;                /* расстояние между строками */
+    flex-direction: column;  /* каждая пара в столбец */
+    align-items: center;     /* центрируем блок по горизонтали */
+    gap: 10px;               /* расстояние между строками */
     background-color: #f9f7f2;
     padding: 15px 20px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     font-size: 14px;
     margin: 15px auto;
-    width: 100%;
-    max-width: 360px;         /* шире, чем было */
+    min-width: 250px;        /* минимальная ширина блока */
 }
 
-/* Каждая строка: label + select */
-.period-select-wrapper .period-row {
-    display: flex;
-    justify-content: flex-start; /* лейбл слева, селектор справа */
-    align-items: center;
-    width: 100%;
-    gap: 12px;                  /* расстояние между лейблом и селектором */
-}
-
-/* Label фиксированной ширины */
-.period-select-wrapper .period-row label {
-    width: 80px;
-    text-align: right;
+/* Каждая строка — flex-контейнер для label + select */
+.period-select-wrapper label {
+    width: 100px;           /* фиксированная ширина label */
+    text-align: right;      /* выравнивание текста label по правому краю */
+    margin-right: 10px;
     font-weight: 600;
     color: #333;
 }
 
-/* Селекторы */
-.period-select-wrapper .period-row select {
-    flex: 1;                 /* занимает оставшееся место */
+.period-select-wrapper select {
     padding: 6px 10px;
     border: 1px solid #ccc;
     border-radius: 6px;
     background: #fff;
     font-size: 14px;
     cursor: pointer;
+    min-width: 120px;
 }
 
-/* Контейнер кнопок под селектором */
+/* Каждую пару label + select помещаем в flex-строку */
+.period-select-wrapper > label:nth-of-type(1),
+.period-select-wrapper > select:nth-of-type(1),
+.period-select-wrapper > label:nth-of-type(2),
+.period-select-wrapper > select:nth-of-type(2),
+.period-select-wrapper > label:nth-of-type(3),
+.period-select-wrapper > select:nth-of-type(3) {
+    display: inline-flex;
+    width: auto;
+}
+
+
+
+
+/* === Контейнер кнопок под селектором === */
 .controls {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;  /* центрируем кнопки */
-    gap: 12px;                /* расстояние между кнопками */
+    align-items: center;
+    gap: 10px;
     margin: 15px;
 }
 
 .controls button {
-    padding: 8px 14px;
+    padding: 8px 12px;
     border: none;
     background-color: #d8cfc0;
     cursor: pointer;
     border-radius: 6px;
     font-weight: 600;
-    font-size: 14px;
 }
 
 .controls button:hover {
     background-color: #c1b29a;
 }
-
 
 /* === Текущая дата сверху === */
 #current-date {
