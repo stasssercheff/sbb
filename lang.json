@@ -1014,11 +1014,23 @@
     "en": "Pancake batter",
     "vi": "Bột bánh kếп"
   },
-  "stuffed_pork": {
-    "ru": "Свинина стафф",
-    "en": "Stuffed pork",
-    "vi": "Thịt heo nhồi"
-  },
+ "ham": {
+  "ru": "Ветчина",
+  "en": "Ham",
+  "vi": "Giăm bông"
+},
+
+"pork_sous_vide_staff": {
+  "ru": "Свинина сувид на стафф",
+  "en": "Sous-vide pork on staff",
+  "vi": "Thịt heo nấu sous-vide trên staff"
+},
+
+"vegetables_staff": {
+  "ru": "Овощи на стафф",
+  "en": "Vegetables on staff",
+  "vi": "Rau củ trên staff"
+},
   "pasta": {
     "ru": "Паста",
     "en": "Pasta",
