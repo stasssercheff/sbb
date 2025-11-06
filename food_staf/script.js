@@ -1,138 +1,124 @@
 document.addEventListener("DOMContentLoaded", () => {
   const chat_id = "-1002393080811";
   const worker_url = "https://shbb1.stassser.workers.dev/";
-
-  const currentDateEl = document.getElementById("current-date");
-  const checklistContainer = document.getElementById("week-checklist");
-  const commentField = document.getElementById("comment_supliers");
-  const generateBtn = document.getElementById("generateBtn");
   const sendBtn = document.getElementById("sendBtn");
+  const weekContainer = document.getElementById("week-container");
+  const daySelect = document.getElementById("daySelect");
+  const monthSelect = document.getElementById("monthSelect");
+  const comment = document.getElementById("comment");
 
-  const daySel = document.getElementById("start-day");
-  const monthSel = document.getElementById("start-month");
-  const countSel = document.getElementById("days-count");
+  // === Навигация ===
+  window.goHome = () => (location.href = "http://stasssercheff.github.io/shbb/");
+  window.goBack = () => {
+    const current = window.location.pathname;
+    const parent = current.substring(0, current.lastIndexOf("/"));
+    const upper = parent.substring(0, parent.lastIndexOf("/"));
+    window.location.href = upper + "/index.html";
+  };
 
-  // ==== Текущая дата ====
-  const now = new Date();
-  const todayStr = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}`;
-  currentDateEl.textContent = todayStr;
-
-  // ==== Создание опций ====
-  function createSelect(options) {
-    const sel = document.createElement("select");
-    options.forEach((o) => {
-      const opt = document.createElement("option");
-      opt.value = o;
-      opt.textContent = o;
-      sel.appendChild(opt);
-    });
-    sel.value = "-";
-    return sel;
+  // === Подготовка селекторов даты ===
+  for (let d = 1; d <= 31; d++) {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    daySelect.appendChild(opt);
   }
 
-  // ==== Генерация недельных блоков ====
-  function generateChecklist() {
-    const day = parseInt(daySel.value);
-    const month = parseInt(monthSel.value);
-    const count = parseInt(countSel.value);
+  for (let m = 1; m <= 12; m++) {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    monthSelect.appendChild(opt);
+  }
 
-    if (!day || !month) {
-      alert("⚠ Выберите дату и месяц");
-      return;
-    }
+  // === Вывод текущей даты ===
+  const currentDateEl = document.getElementById("current-date");
+  const today = new Date();
+  currentDateEl.textContent = today.toLocaleDateString("ru-RU");
 
-    checklistContainer.innerHTML = "";
+  // === Генерация недели ===
+  function generateWeek() {
+    weekContainer.innerHTML = "";
+    const day = parseInt(daySelect.value);
+    const month = parseInt(monthSelect.value);
+    if (!day || !month) return;
 
-    const baseDate = new Date(now.getFullYear(), month - 1, day);
-    for (let i = 0; i < count; i++) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() + i);
-      const dateStr = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const startDate = new Date(today.getFullYear(), month - 1, day);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      const dateStr = date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
 
-      const block = document.createElement("div");
-      block.className = "checklist-day";
-      block.innerHTML = `
-        <div class="date-label"><b>${dateStr}</b></div>
-        <div class="meal"><span>Утро:</span></div>
-        <div class="meal"><span>Вечер:</span></div>
-        <div class="meal"><span>Ночь:</span></div>
+      const dayBlock = document.createElement("div");
+      dayBlock.className = "checklist-item";
+      dayBlock.innerHTML = `
+        <div class="day-label">${dateStr}</div>
+        <div class="selectors">
+          <label data-i18n="morning"></label>
+          ${buildSelect(8)}
+          <label data-i18n="evening"></label>
+          ${buildSelect(8)}
+          <label data-i18n="night"></label>
+          ${buildSelect(2)}
+        </div>
       `;
-
-      const selects = block.querySelectorAll(".meal");
-      selects[0].appendChild(createSelect(["-", 1, 2, 3, 4, 5, 6, 7, 8]));
-      selects[1].appendChild(createSelect(["-", 1, 2, 3, 4, 5, 6, 7, 8]));
-      selects[2].appendChild(createSelect(["-", 1, 2]));
-
-      checklistContainer.appendChild(block);
+      weekContainer.appendChild(dayBlock);
     }
 
-    restoreFromStorage();
-    saveToStorage();
+    // Применить переводы
+    if (typeof switchLanguage === "function") switchLanguage(currentLang);
+
+    // Восстановить сохранённые данные
+    restoreState();
   }
 
-  // ==== Сохранение ====
-  function saveToStorage() {
-    const data = {
-      comment: commentField.value,
-      checklist: []
-    };
+  function buildSelect(max) {
+    let html = `<select class="qty">`;
+    html += `<option value="">-</option>`;
+    for (let i = 1; i <= max; i++) html += `<option value="${i}">${i}</option>`;
+    html += `</select>`;
+    return html;
+  }
 
-    document.querySelectorAll(".checklist-day").forEach((dayBlock) => {
-      const date = dayBlock.querySelector(".date-label b").textContent;
-      const selects = dayBlock.querySelectorAll("select");
-      data.checklist.push({
+  // === Сохранение состояния ===
+  function saveState() {
+    const data = [];
+    document.querySelectorAll("#week-container .checklist-item").forEach((item) => {
+      const date = item.querySelector(".day-label").textContent;
+      const selects = item.querySelectorAll("select");
+      data.push({
         date,
         morning: selects[0].value,
         evening: selects[1].value,
         night: selects[2].value
       });
     });
-
-    localStorage.setItem("weekChecklist", JSON.stringify(data));
+    localStorage.setItem("checklist_week", JSON.stringify(data));
+    localStorage.setItem("checklist_comment", comment.value);
   }
 
-  // ==== Восстановление ====
-  function restoreFromStorage() {
-    const saved = localStorage.getItem("weekChecklist");
-    if (!saved) return;
-    const data = JSON.parse(saved);
+  function restoreState() {
+    const saved = JSON.parse(localStorage.getItem("checklist_week") || "[]");
+    const savedComment = localStorage.getItem("checklist_comment") || "";
+    comment.value = savedComment;
 
-    if (data.comment) commentField.value = data.comment;
-
-    const dayBlocks = document.querySelectorAll(".checklist-day");
-    data.checklist.forEach((savedDay, idx) => {
-      const block = dayBlocks[idx];
-      if (!block) return;
-      const selects = block.querySelectorAll("select");
-      selects[0].value = savedDay.morning || "-";
-      selects[1].value = savedDay.evening || "-";
-      selects[2].value = savedDay.night || "-";
+    if (!saved.length) return;
+    document.querySelectorAll("#week-container .checklist-item").forEach((item, idx) => {
+      const selects = item.querySelectorAll("select");
+      if (saved[idx]) {
+        selects[0].value = saved[idx].morning || "";
+        selects[1].value = saved[idx].evening || "";
+        selects[2].value = saved[idx].night || "";
+      }
     });
   }
 
-  // ==== Формирование сообщения ====
-  function buildMessage() {
-    const saved = JSON.parse(localStorage.getItem("weekChecklist") || "{}");
-    if (!saved.checklist?.length) return null;
+  daySelect.addEventListener("change", generateWeek);
+  monthSelect.addEventListener("change", generateWeek);
+  weekContainer.addEventListener("change", saveState);
+  comment.addEventListener("input", saveState);
 
-    let msg = `🧾 <b>Чеклист недели</b>\n\n📅 Дата отправки: ${todayStr}\n\n`;
-    saved.checklist.forEach((d) => {
-      const { date, morning, evening, night } = d;
-      if (morning === "-" && evening === "-" && night === "-") return;
-      msg += `${date}\n`;
-      if (morning !== "-") msg += `утро - ${morning}\n`;
-      if (evening !== "-") msg += `вечер - ${evening}\n`;
-      if (night !== "-") msg += `ночь - ${night}\n`;
-      msg += "\n";
-    });
-
-    if (saved.comment?.trim()) {
-      msg += `💬 Комментарий:\n${saved.comment.trim()}`;
-    }
-    return msg.trim();
-  }
-
-  // ==== Отправка ====
+  // === Отправка ===
   async function sendMessage(msg) {
     const res = await fetch(worker_url, {
       method: "POST",
@@ -143,30 +129,33 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   sendBtn.addEventListener("click", async () => {
-    const msg = buildMessage();
-    if (!msg) return alert("⚠ Нет данных для отправки");
+    const data = JSON.parse(localStorage.getItem("checklist_week") || "[]").filter(
+      (d) => d.morning || d.evening || d.night
+    );
+    if (!data.length) return alert("⚠ Нет данных для отправки.");
 
-    await sendMessage(msg);
+    const sendLangs = window.sendLangs || ["ru"];
+    const messages = sendLangs.map((lang) => {
+      let msg = `🧾 <b>${translations.weekly_checklist?.[lang] || "Чеклист"}</b>\n\n`;
+      msg += `📅 ${translations.sending_date?.[lang] || "Дата"}: ${today.toLocaleDateString("ru-RU")}\n\n`;
+      data.forEach((d) => {
+        msg += `${d.date}\n`;
+        if (d.morning) msg += `${translations.morning?.[lang] || "Утро"} - ${d.morning}\n`;
+        if (d.evening) msg += `${translations.evening?.[lang] || "Вечер"} - ${d.evening}\n`;
+        if (d.night) msg += `${translations.night?.[lang] || "Ночь"} - ${d.night}\n`;
+        msg += "\n";
+      });
+      if (comment.value.trim())
+        msg += `💬 ${translations.comment?.[lang] || "Комментарий"}:\n${comment.value.trim()}`;
+      return msg;
+    });
+
+    for (const msg of messages) await sendMessage(msg);
+
     alert("✅ Отправлено!");
-
-    localStorage.removeItem("weekChecklist");
-    checklistContainer.innerHTML = "";
-    commentField.value = "";
+    localStorage.removeItem("checklist_week");
+    localStorage.removeItem("checklist_comment");
+    weekContainer.innerHTML = "";
+    comment.value = "";
   });
-
-  // ==== Слушатели ====
-  generateBtn.addEventListener("click", generateChecklist);
-  commentField.addEventListener("input", saveToStorage);
-  checklistContainer.addEventListener("change", saveToStorage);
 });
-
-function goHome() {
-  location.href = "http://stasssercheff.github.io/shbb/";
-}
-
-function goBack() {
-  const currentPath = window.location.pathname;
-  const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/"));
-  const upperPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
-  window.location.href = upperPath + "/index.html";
-}
