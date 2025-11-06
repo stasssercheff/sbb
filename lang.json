@@ -1170,6 +1170,11 @@
     "ru": "Чеклист успешно отправлен!",
     "en": "Checklist sent successfully!",
     "vi": "Gửi danh sách thành công!"
-  }
+  },
+  "food_staf": {
+  "ru": "Еда стафф",
+  "en": "Staff food",
+  "vi": "Suất ăn cho nhân viên"
+ }
 }
 
