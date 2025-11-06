@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const comment = document.getElementById("comment");
 
   // === Навигация ===
-  window.goHome = () => (location.href = "http://stasssercheff.github.io/shbb/");
+  window.goHome = () => (location.href = "https://stasssercheff.github.io/shbb/");
   window.goBack = () => {
     const current = window.location.pathname;
     const parent = current.substring(0, current.lastIndexOf("/"));
@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
       weekContainer.appendChild(dayBlock);
     }
 
-    // Применить переводы
+    // Применить переводы, если доступны
     if (typeof switchLanguage === "function") switchLanguage(currentLang);
 
     // Восстановить сохранённые данные
@@ -117,6 +117,11 @@ document.addEventListener("DOMContentLoaded", () => {
   monthSelect.addEventListener("change", generateWeek);
   weekContainer.addEventListener("change", saveState);
   comment.addEventListener("input", saveState);
+
+  // === Автоподстановка текущей даты и генерация недели ===
+  daySelect.value = today.getDate();
+  monthSelect.value = today.getMonth() + 1;
+  generateWeek();
 
   // === Отправка ===
   async function sendMessage(msg) {
