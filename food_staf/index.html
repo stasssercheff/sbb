@@ -1,1 +1,83 @@
-1234
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="checklist_kitchen"></title>
+
+  <!-- ✅ Подключаем общий CSS -->
+  <link rel="stylesheet" href="../../../common.css">
+    <!-- ✅ Локальный CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Логика перевода -->
+ <script src="../../../sendConfig.js" defer></script>
+<script src="../../../lang.js" defer></script>
+<script src="script.js" defer></script>
+
+
+
+  
+</head>
+<body data-profile="pastry">
+
+  <!-- Хедер с языками и кнопками -->
+  <header class="page-header">
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="ru">RU</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="vi">VI</button>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="nav-btn" data-i18n="home" onclick="goHome()"></button>
+      <button class="nav-btn" data-i18n="back" onclick="goBack()"></button>
+    </div>
+  </header>
+  
+  <main class="main-container">
+
+     <div class="date-container">
+    <span data-i18n="date">Дата</span>:
+    <span id="current-date"></span>
+  </div>
+    
+    <!-- Заголовок -->
+    <h1 data-i18n="checklists"></h1>
+
+
+
+  <div class="dish">
+  <label class="check-label" data-i18n="cheesecake"></label>
+  <select name="cheesecake" class="qty">
+    <option value="" selected>-</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+    <option value="11">11</option>
+    <option value="12">12</option>
+  </select>
+</div>
+
+
+
+  <!-- Комментарий -->
+  <div class="section-title" data-i18n="comment"></div>
+  <textarea id="comment_supliers" class="comment" rows="3" data-i18n="comment_placeholder" placeholder=""></textarea>
+</div>
+
+
+
+    <!-- Кнопка отправки -->
+<button id="sendToTelegram" data-i18n="send"></button>
+  </main>
+</body>
+</html>
