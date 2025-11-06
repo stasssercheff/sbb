@@ -1,207 +1,172 @@
-// script.js — рабочая версия (без дублей, общий комментарий)
-
-// На главную
-function goHome() {
-    location.href = "http://stasssercheff.github.io/shbb25/";
-}
-
-// На уровень выше (одну папку вверх)
-function goBack() {
-    const currentPath = window.location.pathname;
-    const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/"));
-    const upperPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
-    window.location.href = upperPath + "/index.html";
-}
-
-// ==== Переводы ====
-function getTranslationsObject() {
-  if (window?.translations && Object.keys(window.translations).length > 0) return window.translations;
-  if (typeof translations !== "undefined" && translations && Object.keys(translations).length > 0) return translations;
-  return null;
-}
-
-function t(key, lang, fallback = "—") {
-  try {
-    const dict = getTranslationsObject();
-    if (!dict) return fallback;
-    return (dict[key] && dict[key][lang]) ? dict[key][lang] : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-// ==== Сохранение / восстановление формы ====
-function saveFormData() {
-  const data = {};
-  document.querySelectorAll("select, textarea.comment").forEach(el => {
-    data[el.name || el.id] = el.value;
-  });
-  localStorage.setItem("formData", JSON.stringify(data));
-}
-
-function restoreFormData() {
-  const raw = localStorage.getItem("formData");
-  if (!raw) return;
-  try {
-    const data = JSON.parse(raw);
-    document.querySelectorAll("select, textarea.comment").forEach(el => {
-      const key = el.name || el.id;
-      if (data[key] !== undefined) el.value = data[key];
-    });
-  } catch (e) {
-    console.warn("restoreFormData parse error", e);
-  }
-}
-
-// ==== UI язык ====
-function switchLanguage(lang) {
-  document.documentElement.lang = lang;
-  localStorage.setItem("lang", lang);
-  document.querySelectorAll("[data-i18n]").forEach(el => {
-    const key = el.dataset.i18n;
-    if (!key) return;
-    const translated = t(key, lang, null);
-    if (translated && translated !== "—") {
-      if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.hasAttribute("placeholder")) {
-        el.setAttribute("placeholder", translated);
-      } else el.textContent = translated;
-    } else if (key === "empty") el.textContent = "—";
-  });
-
-  document.querySelectorAll("select option").forEach(opt => {
-    const key = opt.dataset.i18n || opt.dataset.i18nKey || opt.dataset.i18nkey;
-    if (key) {
-      const tr = t(key, lang);
-      if (tr && tr !== "—") opt.textContent = tr;
-    } else if (opt.value === "") opt.textContent = "—";
-  });
-}
-
-// ==== Пустая опция ====
-function ensureEmptyOptionForQty() {
-  document.querySelectorAll("select.qty").forEach(sel => {
-    const hasEmpty = Array.from(sel.options).some(o => o.value === "");
-    if (!hasEmpty) {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.dataset.i18n = "empty";
-      opt.textContent = "—";
-      opt.selected = true;
-      sel.insertBefore(opt, sel.firstChild);
-    }
-  });
-}
-
-// ==== Дата ====
-function getFormattedDateDM() {
-  const d = new Date();
-  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
-}
-function setCurrentDateFull() {
-  const el = document.getElementById("current-date");
-  if (el) {
-    const d = new Date();
-    el.textContent = `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
-  }
-}
-
-// ==== Сообщение ====
-function buildMessageForLang(lang) {
-  const formattedDate = getFormattedDateDM();
-
-  // Шапка
-  const nameSel = document.querySelector('select[name="chef"], select#employeeSelect');
-  const chefOpt = nameSel?.options[nameSel.selectedIndex];
-  const chefName = chefOpt
-    ? (chefOpt.dataset.i18n ? t(chefOpt.dataset.i18n, lang, chefOpt.textContent) : chefOpt.textContent)
-    : "—";
-
-  const checklistSel = document.querySelector('select[name="checklist_type"], select#checklistType');
-  const checklistKey = checklistSel?.value || null;
-  const checklistWord = checklistKey ? t(checklistKey, lang, checklistKey) : "";
-
-  let msg = `📅 ${t("date_label", lang, lang === "en" ? "Date" : "Дата")}: ${formattedDate}\n`;
-  msg += `${t("chef_label", lang, lang === "en" ? "Name" : "Имя")}: ${chefName}\n`;
-  if (checklistWord) msg += `${checklistWord}\n\n`;
-
-  // Позиции (только блюда с label.check-label)
-  const dishes = Array.from(document.querySelectorAll(".dish")).filter(d => d.querySelector("label.check-label"));
-  dishes.forEach(dish => {
-    const sel = dish.querySelector("select.qty");
-    if (!sel || !sel.value) return;
-    const label = dish.querySelector("label.check-label");
-    const labelText = label?.dataset?.i18n ? t(label.dataset.i18n, lang, label.textContent) : label?.textContent || "—";
-    msg += `• ${labelText}: ${sel.value}\n`;
-  });
-
-  // Общий комментарий (один)
-  const comment = document.getElementById("comment_supliers")?.value.trim();
-  if (comment) msg += `\n💬 ${t("comment_label", lang, lang === "en" ? "Comment" : "Комментарий")}: ${comment}`;
-
-  return msg.trim();
-}
-
-// ==== Отправка ====
-const CHAT_ID = "-1003076643701";
-const WORKER_URL = "https://shbb1.stassser.workers.dev/";
-
-async function sendMessageToWorker(text) {
-  await fetch(WORKER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: CHAT_ID, text })
-  });
-}
-
-async function sendAllParts(text) {
-  for (let i = 0; i < text.length; i += 4000) {
-    await sendMessageToWorker(text.slice(i, i + 4000));
-  }
-}
-
-// ==== Init ====
-function initPage() {
-  ensureEmptyOptionForQty();
-  restoreFormData();
-  setCurrentDateFull();
-
-  const button = document.getElementById("sendToTelegram");
-  if (!button) return;
-
-  button.addEventListener("click", async () => {
-    try {
-      const langs = Array.isArray(window.sendLangs) && window.sendLangs.length ? window.sendLangs : ["ru"];
-      for (const lang of langs) {
-        const msg = buildMessageForLang(lang);
-        await sendAllParts(msg);
-      }
-      alert("✅ ОТПРАВЛЕНО");
-      localStorage.clear();
-      document.querySelectorAll("select").forEach(s => (s.value = ""));
-      document.querySelectorAll("textarea.comment").forEach(t => (t.value = ""));
-    } catch (err) {
-      console.error("Ошибка отправки:", err);
-      alert("❌ Ошибка: " + (err.message || err));
-    }
-  });
-
-  document.querySelectorAll("select, textarea.comment").forEach(el =>
-    el.addEventListener("input", saveFormData)
-  );
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  const wait = setInterval(() => {
-    const dict = getTranslationsObject();
-    if (dict && Object.keys(dict).length > 0) {
-      clearInterval(wait);
-      initPage();
-    }
-  }, 100);
+  const chat_id = "-1002393080811";
+  const worker_url = "https://shbb1.stassser.workers.dev/";
 
-  const dictNow = getTranslationsObject();
-  if (dictNow && Object.keys(dictNow).length > 0) {
-    clearInterval(wait);
-    initPage();
+  const currentDateEl = document.getElementById("current-date");
+  const checklistContainer = document.getElementById("week-checklist");
+  const commentField = document.getElementById("comment_supliers");
+  const generateBtn = document.getElementById("generateBtn");
+  const sendBtn = document.getElementById("sendBtn");
+
+  const daySel = document.getElementById("start-day");
+  const monthSel = document.getElementById("start-month");
+  const countSel = document.getElementById("days-count");
+
+  // ==== Текущая дата ====
+  const now = new Date();
+  const todayStr = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}`;
+  currentDateEl.textContent = todayStr;
+
+  // ==== Создание опций ====
+  function createSelect(options) {
+    const sel = document.createElement("select");
+    options.forEach((o) => {
+      const opt = document.createElement("option");
+      opt.value = o;
+      opt.textContent = o;
+      sel.appendChild(opt);
+    });
+    sel.value = "-";
+    return sel;
   }
+
+  // ==== Генерация недельных блоков ====
+  function generateChecklist() {
+    const day = parseInt(daySel.value);
+    const month = parseInt(monthSel.value);
+    const count = parseInt(countSel.value);
+
+    if (!day || !month) {
+      alert("⚠ Выберите дату и месяц");
+      return;
+    }
+
+    checklistContainer.innerHTML = "";
+
+    const baseDate = new Date(now.getFullYear(), month - 1, day);
+    for (let i = 0; i < count; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
+      const dateStr = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+      const block = document.createElement("div");
+      block.className = "checklist-day";
+      block.innerHTML = `
+        <div class="date-label"><b>${dateStr}</b></div>
+        <div class="meal"><span>Утро:</span></div>
+        <div class="meal"><span>Вечер:</span></div>
+        <div class="meal"><span>Ночь:</span></div>
+      `;
+
+      const selects = block.querySelectorAll(".meal");
+      selects[0].appendChild(createSelect(["-", 1, 2, 3, 4, 5, 6, 7, 8]));
+      selects[1].appendChild(createSelect(["-", 1, 2, 3, 4, 5, 6, 7, 8]));
+      selects[2].appendChild(createSelect(["-", 1, 2]));
+
+      checklistContainer.appendChild(block);
+    }
+
+    restoreFromStorage();
+    saveToStorage();
+  }
+
+  // ==== Сохранение ====
+  function saveToStorage() {
+    const data = {
+      comment: commentField.value,
+      checklist: []
+    };
+
+    document.querySelectorAll(".checklist-day").forEach((dayBlock) => {
+      const date = dayBlock.querySelector(".date-label b").textContent;
+      const selects = dayBlock.querySelectorAll("select");
+      data.checklist.push({
+        date,
+        morning: selects[0].value,
+        evening: selects[1].value,
+        night: selects[2].value
+      });
+    });
+
+    localStorage.setItem("weekChecklist", JSON.stringify(data));
+  }
+
+  // ==== Восстановление ====
+  function restoreFromStorage() {
+    const saved = localStorage.getItem("weekChecklist");
+    if (!saved) return;
+    const data = JSON.parse(saved);
+
+    if (data.comment) commentField.value = data.comment;
+
+    const dayBlocks = document.querySelectorAll(".checklist-day");
+    data.checklist.forEach((savedDay, idx) => {
+      const block = dayBlocks[idx];
+      if (!block) return;
+      const selects = block.querySelectorAll("select");
+      selects[0].value = savedDay.morning || "-";
+      selects[1].value = savedDay.evening || "-";
+      selects[2].value = savedDay.night || "-";
+    });
+  }
+
+  // ==== Формирование сообщения ====
+  function buildMessage() {
+    const saved = JSON.parse(localStorage.getItem("weekChecklist") || "{}");
+    if (!saved.checklist?.length) return null;
+
+    let msg = `🧾 <b>Чеклист недели</b>\n\n📅 Дата отправки: ${todayStr}\n\n`;
+    saved.checklist.forEach((d) => {
+      const { date, morning, evening, night } = d;
+      if (morning === "-" && evening === "-" && night === "-") return;
+      msg += `${date}\n`;
+      if (morning !== "-") msg += `утро - ${morning}\n`;
+      if (evening !== "-") msg += `вечер - ${evening}\n`;
+      if (night !== "-") msg += `ночь - ${night}\n`;
+      msg += "\n";
+    });
+
+    if (saved.comment?.trim()) {
+      msg += `💬 Комментарий:\n${saved.comment.trim()}`;
+    }
+    return msg.trim();
+  }
+
+  // ==== Отправка ====
+  async function sendMessage(msg) {
+    const res = await fetch(worker_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id, text: msg, parse_mode: "HTML" })
+    });
+    return res.json();
+  }
+
+  sendBtn.addEventListener("click", async () => {
+    const msg = buildMessage();
+    if (!msg) return alert("⚠ Нет данных для отправки");
+
+    await sendMessage(msg);
+    alert("✅ Отправлено!");
+
+    localStorage.removeItem("weekChecklist");
+    checklistContainer.innerHTML = "";
+    commentField.value = "";
+  });
+
+  // ==== Слушатели ====
+  generateBtn.addEventListener("click", generateChecklist);
+  commentField.addEventListener("input", saveToStorage);
+  checklistContainer.addEventListener("change", saveToStorage);
 });
+
+function goHome() {
+  location.href = "http://stasssercheff.github.io/shbb/";
+}
+
+function goBack() {
+  const currentPath = window.location.pathname;
+  const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/"));
+  const upperPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
+  window.location.href = upperPath + "/index.html";
+}
