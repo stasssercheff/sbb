@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const comment = document.getElementById("comment");
 
   // === Навигация ===
-  window.goHome = () => (location.href = "https://stasssercheff.github.io/sbb/");
+  window.goHome = () => (location.href = "https://stasssercheff.github.io/shbb/");
   window.goBack = () => {
     const current = window.location.pathname;
     const parent = current.substring(0, current.lastIndexOf("/"));
