@@ -1125,5 +1125,52 @@
   "ru": "Сформировать ЗП",
   "en": "Generate salary",
   "vi": "Tính lương"
- }
+ },
+  "checklist_title": {
+    "ru": "Чеклист по дням",
+    "en": "Daily checklist",
+    "vi": "Danh sách kiểm tra theo ngày"
+  },
+  "checklist_day": {
+    "ru": "День",
+    "en": "Day",
+    "vi": "Ngày"
+  },
+  "checklist_morning": {
+    "ru": "Утро",
+    "en": "Morning",
+    "vi": "Buổi sáng"
+  },
+  "checklist_evening": {
+    "ru": "Вечер",
+    "en": "Evening",
+    "vi": "Buổi tối"
+  },
+  "checklist_night": {
+    "ru": "Ночь",
+    "en": "Night",
+    "vi": "Ban đêm"
+  },
+  "checklist_select_default": {
+    "ru": "-",
+    "en": "-",
+    "vi": "-"
+  },
+  "checklist_send_btn": {
+    "ru": "Отправить чеклист",
+    "en": "Send checklist",
+    "vi": "Gửi danh sách"
+  },
+  "checklist_empty_warning": {
+    "ru": "Нет данных для отправки",
+    "en": "No data to send",
+    "vi": "Không có dữ liệu để gửi"
+  },
+  "checklist_sent_success": {
+    "ru": "Чеклист успешно отправлен!",
+    "en": "Checklist sent successfully!",
+    "vi": "Gửi danh sách thành công!"
+  }
+}
+
 }
