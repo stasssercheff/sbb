@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="checklist_week">Чеклист недели</title>
+  <title data-i18n="weekly_checklist"></title>
 
-  <!-- Общие стили -->
-  <link rel="stylesheet" href="../../../common.css">
-  <!-- Локальные стили -->
+  <!-- Общий CSS -->
+  <link rel="stylesheet" href="../common.css">
+  <!-- Локальный CSS -->
   <link rel="stylesheet" href="style.css">
 
-  <script src="../../../sendConfig.js" defer></script>
-  <script src="../../../lang.js" defer></script>
-  <script src="script.js" defer></script>
+  <!-- Скрипты -->
+  <script src="../sendConfig.js" defer></script>
+  <script src="../lang.js" defer></script>
+  <script src="checklist.js" defer></script>
 </head>
-
-<body data-profile="pastry">
-
+<body data-profile="kitchen">
   <header class="page-header">
     <div class="lang-switch">
       <button class="lang-btn" data-lang="ru">RU</button>
@@ -31,47 +30,27 @@
   </header>
 
   <main class="main-container">
-
-    <!-- Сегодняшняя дата -->
     <div class="date-container">
-      <span><b>Дата отправки:</b> <span id="current-date"></span></span>
+      <span data-i18n="sending_date"></span>:
+      <span id="current-date"></span>
     </div>
 
-    <h1 data-i18n="checklist_week">Чеклист недели</h1>
+    <h1 data-i18n="weekly_checklist"></h1>
 
-    <!-- Панель выбора -->
-    <div class="selectors">
-      <label>День: 
-        <select id="start-day">
-          <option value="">-</option>
-          ${Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
-        </select>
-      </label>
-      <label>Месяц: 
-        <select id="start-month">
-          <option value="">-</option>
-          ${Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
-        </select>
-      </label>
-      <label>Дней: 
-        <select id="days-count">
-          ${Array.from({length:7},(_,i)=>`<option value="${i+1}" ${i===6?"selected":""}>${i+1}</option>`).join('')}
-        </select>
-      </label>
-      <button id="generateBtn">Сгенерировать</button>
+    <div id="date-selectors" class="dish">
+      <label data-i18n="select_start_date"></label>
+      <select id="daySelect" class="qty"></select>
+      <select id="monthSelect" class="qty"></select>
     </div>
 
-    <!-- Чеклист -->
-    <div id="week-checklist"></div>
+    <div id="week-container"></div>
 
-    <!-- Комментарий -->
     <div class="dish">
-      <textarea id="comment_supliers" class="comment" rows="3" placeholder="Комментарий..."></textarea>
+      <label data-i18n="comment"></label>
+      <textarea id="comment" class="comment" rows="3" placeholder=""></textarea>
     </div>
 
-    <!-- Кнопка отправки -->
-    <button id="sendBtn">Отправить</button>
-
+    <button id="sendBtn" data-i18n="send"></button>
   </main>
 </body>
 </html>
