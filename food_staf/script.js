@@ -46,14 +46,10 @@ document.addEventListener("DOMContentLoaded", () => {
       dayBlock.className = "checklist-item";
       dayBlock.innerHTML = `
         <div class="day-label">Дата: ${dateStr}</div>
-        <div class="selectors">
-          <label>Утро</label> ${buildSelect(9)}
-        </div>
-        <div class="selectors">
-          <label>Вечер</label> ${buildSelect(9)}
-        </div>
-        <div class="selectors">
-          <label>Ночь</label> ${buildSelect(2)}
+        <div class="selectors-container">
+          <div class="selectors"><label>Утро</label>${buildSelect(9)}</div>
+          <div class="selectors"><label>Вечер</label>${buildSelect(9)}</div>
+          <div class="selectors"><label>Ночь</label>${buildSelect(2)}</div>
         </div>
       `;
       weekContainer.appendChild(dayBlock);
@@ -119,10 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const sendLangs = window.sendLangs || ["ru"];
     const messages = sendLangs.map(lang => {
-      let msg = `🧾 <b>${translations.weekly_checklist?.[lang] || "Чеклист"}</b>\n\n`;
-      msg += `📅 ${translations.sending_date?.[lang] || "Дата"}: ${today.toLocaleDateString("ru-RU")}\n\n`;
+      let msg = `Стафф еда зал\n\n`; // добавили заголовок
       data.forEach(d => {
-        msg += `${d.date}\n`;
+        msg += `Дата: ${d.date}\n`;
         if (d.morning) msg += `Утро - ${d.morning}\n`;
         if (d.evening) msg += `Вечер - ${d.evening}\n`;
         if (d.night) msg += `Ночь - ${d.night}\n`;
@@ -140,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    alert(translations.checklist_sent_success?.ru || "✅ Чеклист успешно отправлен!");
+    alert("✅ Чеклист успешно отправлен!");
     localStorage.removeItem("checklist_week");
     localStorage.removeItem("checklist_comment");
     generateWeek();
