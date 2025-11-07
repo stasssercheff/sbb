@@ -1,52 +1,57 @@
 /* === Локальные стили для checklist === */
+
+/* Заголовок */
 h1[data-i18n] {
     font-size: 18px;
     text-align: center;
-    margin: 6px 0 12px;
+    margin: 6px 0 10px;
 }
 
+/* Чеклист */
 #week-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     text-align: left;
 }
 
 .checklist-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
     background-color: #f9f7f2;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    margin-bottom: 6px;
 }
 
+/* Дата */
 .checklist-item .day-label {
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: normal; /* убрали жирный */
     margin-bottom: 4px;
+    font-size: 14px;
     color: var(--text);
 }
 
-.selectors {
+/* Селекторы */
+.checklist-item .selectors {
     display: flex;
-    gap: 6px;
+    gap: 10px;
+    margin-bottom: 4px;
     align-items: center;
 }
 
-.selectors label {
-    flex: 0 0 50px;
+.checklist-item .selectors label {
+    width: 50px;
     font-size: 13px;
 }
 
-.selectors select.qty {
-    flex: 1;
-    padding: 6px;
+.checklist-item .selectors select.qty {
+    width: 40px; /* компактный */
+    padding: 4px;
     font-size: 13px;
     border: 1px solid #ccc;
     border-radius: 6px;
-    background: #fff;
     text-align: center;
     text-align-last: center;
     cursor: pointer;
