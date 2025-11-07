@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const monthSelect = document.getElementById("monthSelect");
   const comment = document.getElementById("comment");
 
-  // === Навигация ===
   window.goHome = () => (location.href = "https://stasssercheff.github.io/shbb/");
   window.goBack = () => {
     const current = window.location.pathname;
@@ -16,14 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = upper + "/index.html";
   };
 
-  // === Создание селекторов даты ===
+  // === Селекторы даты ===
   for (let d = 1; d <= 31; d++) {
     const opt = document.createElement("option");
     opt.value = d;
     opt.textContent = d;
     daySelect.appendChild(opt);
   }
-
   for (let m = 1; m <= 12; m++) {
     const opt = document.createElement("option");
     opt.value = m;
@@ -36,15 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const today = new Date();
   currentDateEl.textContent = today.toLocaleDateString("ru-RU");
 
-  // === Генерация недели ===
-  function generateWeek() {
+  // === Создание пустых блоков недели сразу ===
+  function generateWeekBlocks() {
     weekContainer.innerHTML = "";
-
-    const day = parseInt(daySelect.value);
-    const month = parseInt(monthSelect.value);
-    if (!day || !month) return;
-
-    const startDate = new Date(today.getFullYear(), month - 1, day);
+    const startDate = new Date(today.getFullYear(), 0, 1); // просто для генерации видимых блоков
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startDate);
@@ -57,17 +50,16 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="day-label">${dateStr}</div>
         <div class="selectors">
           <label data-i18n="morning"></label>
-          ${buildSelect(8)}
+          ${buildEmptySelect(8)}
           <label data-i18n="evening"></label>
-          ${buildSelect(8)}
+          ${buildEmptySelect(8)}
           <label data-i18n="night"></label>
-          ${buildSelect(2)}
+          ${buildEmptySelect(2)}
         </div>
       `;
       weekContainer.appendChild(dayBlock);
     }
 
-    // Применить переводы
     if (typeof switchLanguage === "function" && typeof currentLang !== "undefined") {
       switchLanguage(currentLang);
     }
@@ -75,29 +67,17 @@ document.addEventListener("DOMContentLoaded", () => {
     restoreState();
   }
 
-  // === Селекты для количества ===
-  function buildSelect(max) {
-    const select = document.createElement("select");
-    select.className = "qty";
-    const optEmpty = document.createElement("option");
-    optEmpty.value = "";
-    optEmpty.textContent = "-";
-    select.appendChild(optEmpty);
-
-    for (let i = 1; i <= max; i++) {
-      const opt = document.createElement("option");
-      opt.value = i;
-      opt.textContent = i;
-      select.appendChild(opt);
-    }
-
-    return select.outerHTML;
+  function buildEmptySelect(max) {
+    let html = `<select class="qty"><option value="">Выберите</option>`;
+    for (let i = 1; i <= max; i++) html += `<option value="${i}">${i}</option>`;
+    html += `</select>`;
+    return html;
   }
 
-  // === Сохранение состояния ===
+  // === Сохранение и восстановление ===
   function saveState() {
     const data = [];
-    document.querySelectorAll("#week-container .checklist-item").forEach((item) => {
+    document.querySelectorAll("#week-container .checklist-item").forEach(item => {
       const date = item.querySelector(".day-label").textContent;
       const selects = item.querySelectorAll("select");
       data.push({
@@ -113,8 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function restoreState() {
     const saved = JSON.parse(localStorage.getItem("checklist_week") || "[]");
-    const savedComment = localStorage.getItem("checklist_comment") || "";
-    comment.value = savedComment;
+    comment.value = localStorage.getItem("checklist_comment") || "";
 
     if (!saved.length) return;
     document.querySelectorAll("#week-container .checklist-item").forEach((item, idx) => {
@@ -127,47 +106,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // === События ===
-  daySelect.addEventListener("change", generateWeek);
-  monthSelect.addEventListener("change", generateWeek);
+  daySelect.addEventListener("change", saveState);
+  monthSelect.addEventListener("change", saveState);
   weekContainer.addEventListener("change", saveState);
   comment.addEventListener("input", saveState);
 
-  // === Автоустановка текущей даты и генерация ===
-  daySelect.value = today.getDate();
-  monthSelect.value = today.getMonth() + 1;
-  generateWeek();
+  // === Генерируем блоки сразу при загрузке ===
+  generateWeekBlocks();
 
   // === Отправка ===
   async function sendMessage(msg) {
-    const res = await fetch(worker_url, {
+    await fetch(worker_url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id, text: msg, parse_mode: "HTML" })
     });
-    return res.json();
   }
 
   sendBtn.addEventListener("click", async () => {
     const data = JSON.parse(localStorage.getItem("checklist_week") || "[]").filter(
-      (d) => d.morning || d.evening || d.night
+      d => d.morning || d.evening || d.night
     );
 
     if (!data.length) return alert("⚠ Нет данных для отправки.");
 
     const sendLangs = window.sendLangs || ["ru"];
-    const messages = sendLangs.map((lang) => {
+    const messages = sendLangs.map(lang => {
       let msg = `🧾 <b>${translations.weekly_checklist?.[lang] || "Чеклист"}</b>\n\n`;
       msg += `📅 ${translations.sending_date?.[lang] || "Дата"}: ${today.toLocaleDateString("ru-RU")}\n\n`;
-      data.forEach((d) => {
+      data.forEach(d => {
         msg += `${d.date}\n`;
         if (d.morning) msg += `${translations.morning?.[lang] || "Утро"} - ${d.morning}\n`;
         if (d.evening) msg += `${translations.evening?.[lang] || "Вечер"} - ${d.evening}\n`;
         if (d.night) msg += `${translations.night?.[lang] || "Ночь"} - ${d.night}\n`;
         msg += "\n";
       });
-      if (comment.value.trim())
+      if (comment.value.trim()) {
         msg += `💬 ${translations.comment?.[lang] || "Комментарий"}:\n${comment.value.trim()}`;
+      }
       return msg;
     });
 
@@ -176,8 +152,6 @@ document.addEventListener("DOMContentLoaded", () => {
     alert(translations.checklist_sent_success?.ru || "✅ Чеклист успешно отправлен!");
     localStorage.removeItem("checklist_week");
     localStorage.removeItem("checklist_comment");
-    weekContainer.innerHTML = "";
-    comment.value = "";
-    generateWeek();
+    generateWeekBlocks();
   });
 });
