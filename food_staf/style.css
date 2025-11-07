@@ -1,53 +1,61 @@
 /* === Локальные стили для checklist === */
 
-/* Заголовок */
 h1[data-i18n] {
     font-size: 18px;
     text-align: center;
     margin: 6px 0 10px;
 }
 
-/* Чеклист */
 #week-container {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    text-align: left;
+    gap: 12px;
 }
 
 .checklist-item {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* дата слева, селекторы справа */
+    justify-content: space-between;
+    align-items: flex-start;
     background-color: #f9f7f2;
-    padding: 6px 8px;
+    padding: 8px 12px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    margin-bottom: 6px;
 }
 
-/* Дата */
+/* Дата слева */
 .checklist-item .day-label {
-    font-weight: normal; /* убрали жирный */
-    margin-bottom: 4px;
+    font-weight: normal;
     font-size: 14px;
     color: var(--text);
+    width: 80px; /* фиксированная ширина для выравнивания */
 }
 
-/* Селекторы */
+/* Контейнер селекторов */
+.checklist-item .selectors-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+/* Один ряд селектора */
 .checklist-item .selectors {
     display: flex;
-    gap: 10px;
-    margin-bottom: 4px;
+    gap: 6px;
     align-items: center;
 }
 
+/* Названия селекторов */
 .checklist-item .selectors label {
     width: 50px;
     font-size: 13px;
+    text-align: left;
 }
 
+/* Селекторы шире */
 .checklist-item .selectors select.qty {
-    width: 40px; /* компактный */
+    width: 80px; /* в 2 раза шире */
     padding: 4px;
     font-size: 13px;
     border: 1px solid #ccc;
@@ -67,4 +75,9 @@ h1[data-i18n] {
     font-size: 13px;
     resize: vertical;
     margin-top: 6px;
+}
+
+/* Начало периода */
+#date-selectors {
+    margin-bottom: 12px;
 }
