@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = upper + "/index.html";
   };
 
-  // === Подготовка селекторов даты ===
+  // === Создание селекторов даты ===
   for (let d = 1; d <= 31; d++) {
     const opt = document.createElement("option");
     opt.value = d;
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     monthSelect.appendChild(opt);
   }
 
-  // === Вывод текущей даты ===
+  // === Текущая дата ===
   const currentDateEl = document.getElementById("current-date");
   const today = new Date();
   currentDateEl.textContent = today.toLocaleDateString("ru-RU");
@@ -39,11 +39,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // === Генерация недели ===
   function generateWeek() {
     weekContainer.innerHTML = "";
+
     const day = parseInt(daySelect.value);
     const month = parseInt(monthSelect.value);
     if (!day || !month) return;
 
     const startDate = new Date(today.getFullYear(), month - 1, day);
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
@@ -65,19 +67,31 @@ document.addEventListener("DOMContentLoaded", () => {
       weekContainer.appendChild(dayBlock);
     }
 
-    // Применить переводы, если доступны
-    if (typeof switchLanguage === "function") switchLanguage(currentLang);
+    // Применить переводы
+    if (typeof switchLanguage === "function" && typeof currentLang !== "undefined") {
+      switchLanguage(currentLang);
+    }
 
-    // Восстановить сохранённые данные
     restoreState();
   }
 
+  // === Селекты для количества ===
   function buildSelect(max) {
-    let html = `<select class="qty">`;
-    html += `<option value="">-</option>`;
-    for (let i = 1; i <= max; i++) html += `<option value="${i}">${i}</option>`;
-    html += `</select>`;
-    return html;
+    const select = document.createElement("select");
+    select.className = "qty";
+    const optEmpty = document.createElement("option");
+    optEmpty.value = "";
+    optEmpty.textContent = "-";
+    select.appendChild(optEmpty);
+
+    for (let i = 1; i <= max; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = i;
+      select.appendChild(opt);
+    }
+
+    return select.outerHTML;
   }
 
   // === Сохранение состояния ===
@@ -113,12 +127,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // === События ===
   daySelect.addEventListener("change", generateWeek);
   monthSelect.addEventListener("change", generateWeek);
   weekContainer.addEventListener("change", saveState);
   comment.addEventListener("input", saveState);
 
-  // === Автоподстановка текущей даты и генерация недели ===
+  // === Автоустановка текущей даты и генерация ===
   daySelect.value = today.getDate();
   monthSelect.value = today.getMonth() + 1;
   generateWeek();
@@ -137,6 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = JSON.parse(localStorage.getItem("checklist_week") || "[]").filter(
       (d) => d.morning || d.evening || d.night
     );
+
     if (!data.length) return alert("⚠ Нет данных для отправки.");
 
     const sendLangs = window.sendLangs || ["ru"];
@@ -157,10 +173,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for (const msg of messages) await sendMessage(msg);
 
-    alert("✅ Отправлено!");
+    alert(translations.checklist_sent_success?.ru || "✅ Чеклист успешно отправлен!");
     localStorage.removeItem("checklist_week");
     localStorage.removeItem("checklist_comment");
     weekContainer.innerHTML = "";
     comment.value = "";
+    generateWeek();
   });
 });
