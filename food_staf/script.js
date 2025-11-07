@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = upper + "/index.html";
   };
 
-  // Заполняем селекторы дня и месяца
+  // === Селекторы даты ===
   for (let d = 1; d <= 31; d++) {
     const opt = document.createElement("option");
     opt.value = d;
@@ -31,17 +31,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const today = new Date();
 
-  // Генерация блоков недели
+  // === Генерация блоков недели ===
   function generateWeek() {
     weekContainer.innerHTML = "";
-
-    const day = parseInt(daySelect.value) || today.getDate();
-    const month = parseInt(monthSelect.value) || (today.getMonth() + 1);
-    const startDate = new Date(today.getFullYear(), month - 1, day);
+    const day = parseInt(daySelect.value);
+    const month = parseInt(monthSelect.value);
+    if (!day || !month) return;
 
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
+      const date = new Date(today.getFullYear(), month - 1, day + i);
       const dateStr = date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
 
       const dayBlock = document.createElement("div");
@@ -49,9 +47,13 @@ document.addEventListener("DOMContentLoaded", () => {
       dayBlock.innerHTML = `
         <div class="day-label">Дата: ${dateStr}</div>
         <div class="selectors">
-          <div class="selector-row"><label>Утро</label>${buildSelect(8)}</div>
-          <div class="selector-row"><label>Вечер</label>${buildSelect(8)}</div>
-          <div class="selector-row"><label>Ночь</label>${buildSelect(2)}</div>
+          <label>Утро</label> ${buildSelect(9)}
+        </div>
+        <div class="selectors">
+          <label>Вечер</label> ${buildSelect(9)}
+        </div>
+        <div class="selectors">
+          <label>Ночь</label> ${buildSelect(2)}
         </div>
       `;
       weekContainer.appendChild(dayBlock);
@@ -61,16 +63,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function buildSelect(max) {
-    let html = `<select class="qty"><option value="">Выберите</option>`;
+    let html = `<select class="qty"><option value="">-</option>`;
     for (let i = 1; i <= max; i++) html += `<option value="${i}">${i}</option>`;
     html += `</select>`;
     return html;
   }
 
+  // === Сохранение/восстановление ===
   function saveState() {
     const data = [];
     document.querySelectorAll("#week-container .checklist-item").forEach(item => {
-      const date = item.querySelector(".day-label").textContent;
+      const date = item.querySelector(".day-label").textContent.replace("Дата: ", "");
       const selects = item.querySelectorAll("select");
       data.push({
         date,
@@ -86,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function restoreState() {
     const saved = JSON.parse(localStorage.getItem("checklist_week") || "[]");
     comment.value = localStorage.getItem("checklist_comment") || "";
-
     if (!saved.length) return;
     document.querySelectorAll("#week-container .checklist-item").forEach((item, idx) => {
       const selects = item.querySelectorAll("select");
@@ -103,21 +105,15 @@ document.addEventListener("DOMContentLoaded", () => {
   weekContainer.addEventListener("change", saveState);
   comment.addEventListener("input", saveState);
 
+  // === Автоподстановка текущей даты на старте ===
+  daySelect.value = today.getDate();
+  monthSelect.value = today.getMonth() + 1;
   generateWeek();
 
-  // Отправка
-  async function sendMessage(msg) {
-    await fetch(worker_url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id, text: msg, parse_mode: "HTML" })
-    });
-  }
-
+  // === Отправка ===
   sendBtn.addEventListener("click", async () => {
-    const data = JSON.parse(localStorage.getItem("checklist_week") || "[]").filter(
-      d => d.morning || d.evening || d.night
-    );
+    const data = JSON.parse(localStorage.getItem("checklist_week") || "[]")
+      .filter(d => d.morning || d.evening || d.night);
 
     if (!data.length) return alert("⚠ Нет данных для отправки.");
 
@@ -136,9 +132,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return msg;
     });
 
-    for (const msg of messages) await sendMessage(msg);
+    for (const msg of messages) {
+      await fetch(worker_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id, text: msg, parse_mode: "HTML" })
+      });
+    }
 
-    alert("✅ Чеклист успешно отправлен!");
+    alert(translations.checklist_sent_success?.ru || "✅ Чеклист успешно отправлен!");
     localStorage.removeItem("checklist_week");
     localStorage.removeItem("checklist_comment");
     generateWeek();
