@@ -241,7 +241,28 @@ async function sendSalary() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("current-date").textContent = new Date().toLocaleDateString("ru-RU");
 
-  loadSchedule();
+  loadSchedule();loadSchedule().then(() => {
+  const today = new Date();
+  const table = document.getElementById("schedule");
+  const headerRow = table.querySelector("thead tr") || table.querySelector("tbody tr"); // если нет thead
+  if (!headerRow) return;
+
+  let scrollToIdx = 0;
+  const ths = headerRow.children;
+  for (let i = 1; i < ths.length; i++) { // пропускаем первый столбец с именем
+    const cellDate = parseDate(ths[i].textContent);
+    if (cellDate && cellDate >= today) {
+      scrollToIdx = i;
+      break;
+    }
+  }
+
+  const firstRow = table.querySelector("tbody tr");
+  if (firstRow) {
+    const td = firstRow.children[scrollToIdx];
+    if (td) td.scrollIntoView({ behavior: "smooth", inline: "center" });
+  }
+});
 
   document.getElementById("generateBtn").addEventListener("click", generateSalary);
   document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
