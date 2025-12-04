@@ -61,9 +61,9 @@ table td:first-child {
     left: 0;
     background: #fff;
     font-weight: bold;
-    width: 100px;
-    min-width: 100px;
-    max-width: 100px;
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
 }
 
 
