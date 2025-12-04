@@ -195,11 +195,9 @@ function renderSalarySummary(start, end, summary) {
 
   const names = Object.keys(summary).sort((a, b) => a.localeCompare(b, "ru"));
 
-  // Создаём контейнер для итоговой суммы
   const totalDiv = document.createElement("div");
   totalDiv.style.fontWeight = "700";
-  totalDiv.style.marginTop = "8px";
-  container.appendChild(totalDiv);
+  totalDiv.style.marginTop = "12px";
 
   // Блок для каждого сотрудника
   names.forEach((name) => {
@@ -208,21 +206,35 @@ function renderSalarySummary(start, end, summary) {
 
     const div = document.createElement("div");
     div.style.whiteSpace = "pre-line";
-    div.style.marginBottom = "6px";
+    div.style.marginBottom = "8px";
+    div.style.padding = "6px 8px";
+    div.style.border = "1px solid #e0e0e0";
+    div.style.borderRadius = "6px";
+    div.style.backgroundColor = "#fafafa";
 
     // Базовый текст до корректировки
     const textBefore = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
 
-    // input для корректировки
+    // input для корректировки с улучшенными стилями
     const input = document.createElement("input");
     input.type = "number";
     input.value = s.manualAmount || 0;
-    input.style.marginLeft = "8px";
-    input.style.width = "80px";
     input.placeholder = "Корректировка";
+    input.style.marginTop = "4px";
+    input.style.marginLeft = "0";
+    input.style.width = "100px";
+    input.style.padding = "4px 6px";
+    input.style.border = "1px solid #ccc";
+    input.style.borderRadius = "4px";
+    input.style.backgroundColor = "#f9f9f9";
+    input.style.fontSize = "14px";
+    input.style.transition = "all 0.2s";
+    input.addEventListener("focus", () => input.style.borderColor = "#66afe9");
+    input.addEventListener("blur", () => input.style.borderColor = "#ccc");
 
     const totalLine = document.createElement("div");
     totalLine.style.fontWeight = "500";
+    totalLine.style.marginTop = "4px";
 
     // Функция обновления отображения
     const updateBlock = () => {
@@ -252,6 +264,9 @@ function renderSalarySummary(start, end, summary) {
 
     container.appendChild(div);
   });
+
+  // Итог после всех сотрудников
+  container.appendChild(totalDiv);
 }
 
 // ================== КНОПКИ ==================
