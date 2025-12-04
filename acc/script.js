@@ -4,16 +4,16 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpNWtZImdMKoOx
 
 const employeesRU = {
   "Стас": { position: "Шеф", rate: 1300 },
-  "Макс Р": { position: "Повар", rate: 700 },
-  "Макс Ж": { position: "Повар", rate: 600 },
+  "Максим Р": { position: "Повар", rate: 700 },
+  "Максим Ж": { position: "Повар", rate: 600 },
   "Баха": { position: "Повар", rate: 650 },
   "Ирина": { position: "Кондитер", rate: 650 }
 };
 
 const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
-  "Макс Р": { name: "Maksim R", position: "Cook", rate: 700 },
-  "Макс Ж": { name: "Maksim G", position: "Cook", rate: 600 },
+  "Максим Р": { name: "Maxim R", position: "Cook", rate: 700 },
+  "Максим Ж": { name: "Maxim G", position: "Cook", rate: 600 },
   "Баха": { name: "Baha", position: "Cook", rate: 650 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 650 }
 };
@@ -146,6 +146,7 @@ function parseManualAmount(text) {
 }
 
 // ================== ТЕКСТ ЗАРПЛАТЫ ==================
+// ---- ПРАВКА: корректировка перед К выплате ----
 function formatSalaryMessageRU(start, end, summary) {
   let msg = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\n\n`;
   let total = 0;
@@ -174,6 +175,7 @@ function formatSalaryMessageEN(start, end, summary) {
 }
 
 // ================== ОТОБРАЖЕНИЕ ОТЧЕТА ==================
+// ---- ПРАВКА: корректировка перед К выплате ----
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
   container.innerHTML = ""; // очищаем контейнер
@@ -192,7 +194,7 @@ function renderSalarySummary(start, end, summary) {
     const pos = (employeesRU[name] && employeesRU[name].position) || "";
 
     const blockText = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}` +
-                      (s.manualText ? `\nКорректировка: ${s.manualAmount}` : "") +
+                      (s.manualAmount ? `\nКорректировка: ${s.manualAmount}` : "") +
                       `\nК выплате: ${s.total}`;
 
     const div = document.createElement("div");
@@ -204,7 +206,6 @@ function renderSalarySummary(start, end, summary) {
     totalAll += s.total;
   });
 
-  // Итог по всем
   const totalDiv = document.createElement("div");
   totalDiv.style.fontWeight = "700";
   totalDiv.style.marginTop = "8px";
