@@ -174,8 +174,15 @@ function formatSalaryMessageEN(start, end, summary) {
   return msg;
 }
 
+
+
+
+
+
+
+
 // ================== ОТОБРАЖЕНИЕ ОТЧЕТА ==================
-// ---- ПРАВКА: корректировка перед К выплате ----
+// ---- КОРРЕКТИРОВКА ЗАРПЛАТЫ С ДИНАМИЧЕСКИМИ ИЗМЕНЕНИЯМИ ----
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
   container.innerHTML = ""; // очищаем контейнер
@@ -186,31 +193,65 @@ function renderSalarySummary(start, end, summary) {
   heading.style.marginBottom = "8px";
   container.appendChild(heading);
 
-  let totalAll = 0;
-  const names = Object.keys(summary).sort((a,b) => a.localeCompare(b, 'ru'));
+  const names = Object.keys(summary).sort((a, b) => a.localeCompare(b, "ru"));
 
-  names.forEach(name => {
-    const s = summary[name];
-    const pos = (employeesRU[name] && employeesRU[name].position) || "";
-
-    const blockText = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}` +
-                      (s.manualAmount ? `\nКорректировка: ${s.manualAmount}` : "") +
-                      `\nК выплате: ${s.total}`;
-
-    const div = document.createElement("div");
-    div.style.whiteSpace = "pre-line"; // сохраняем переносы
-    div.textContent = blockText;
-    div.style.marginBottom = "6px"; // небольшой отступ между сотрудниками
-    container.appendChild(div);
-
-    totalAll += s.total;
-  });
-
+  // Создаём контейнер для итоговой суммы
   const totalDiv = document.createElement("div");
   totalDiv.style.fontWeight = "700";
   totalDiv.style.marginTop = "8px";
-  totalDiv.textContent = `Итого к выплате: ${totalAll}`;
   container.appendChild(totalDiv);
+
+  // Блок для каждого сотрудника
+  names.forEach((name) => {
+    const s = summary[name];
+    const pos = (employeesRU[name] && employeesRU[name].position) || "";
+
+    const div = document.createElement("div");
+    div.style.whiteSpace = "pre-line";
+    div.style.marginBottom = "6px";
+
+    // Базовый текст до корректировки
+    const textBefore = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
+
+    // input для корректировки
+    const input = document.createElement("input");
+    input.type = "number";
+    input.value = s.manualAmount || 0;
+    input.style.marginLeft = "8px";
+    input.style.width = "80px";
+    input.placeholder = "Корректировка";
+
+    const totalLine = document.createElement("div");
+    totalLine.style.fontWeight = "500";
+
+    // Функция обновления отображения
+    const updateBlock = () => {
+      s.manualAmount = parseInt(input.value) || 0;
+      const totalForWorker = s.shifts * s.rate + s.manualAmount;
+
+      totalLine.textContent =
+        (s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "") +
+        `К выплате: ${totalForWorker}`;
+
+      // Общий блок
+      div.textContent = textBefore + "\n";
+      div.appendChild(totalLine);
+      div.appendChild(input);
+
+      // Пересчёт итогового totalAll
+      let sumAll = 0;
+      names.forEach((n) => {
+        const sw = summary[n];
+        sumAll += sw.shifts * sw.rate + (sw.manualAmount || 0);
+      });
+      totalDiv.textContent = `Итого к выплате: ${sumAll}`;
+    };
+
+    input.addEventListener("input", updateBlock);
+    updateBlock();
+
+    container.appendChild(div);
+  });
 }
 
 // ================== КНОПКИ ==================
