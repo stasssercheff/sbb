@@ -176,7 +176,7 @@ function formatSalaryMessageEN(start, end, summary) {
 // ================== ОТОБРАЖЕНИЕ ОТЧЕТА ==================
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
-  container.innerHTML = "";
+  container.innerHTML = ""; // очищаем контейнер
 
   const heading = document.createElement("div");
   heading.textContent = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
@@ -184,46 +184,32 @@ function renderSalarySummary(start, end, summary) {
   heading.style.marginBottom = "8px";
   container.appendChild(heading);
 
-  const list = document.createElement("div");
-  list.style.display = "flex";
-  list.style.flexDirection = "column";
-  list.style.gap = "4px";
-  container.appendChild(list);
+  let totalAll = 0;
+  const names = Object.keys(summary).sort((a,b) => a.localeCompare(b, 'ru'));
 
-  Object.keys(summary).sort((a,b) => a.localeCompare(b,'ru')).forEach(name => {
+  names.forEach(name => {
     const s = summary[name];
-    const pos = employeesRU[name].position;
+    const pos = (employeesRU[name] && employeesRU[name].position) || "";
 
-    const block = document.createElement("div");
-    block.style.padding = "6px";
-    block.style.border = "1px solid #ddd";
-    block.style.borderRadius = "6px";
-    block.style.background = "#fafafa";
-    block.style.fontSize = "14px";
+    const blockText = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}` +
+                      (s.manualText ? `\nКорректировка: ${s.manualAmount}` : "") +
+                      `\nК выплате: ${s.total}`;
 
-    block.innerHTML = `
-      <div style="font-weight:600;">${name} (${pos})</div>
-      <div>Смен: ${s.shifts}</div>
-      <div>Ставка: ${s.rate}</div>
-      ${s.manualAmount ? `<div>Корректировка: ${s.manualAmount}</div>` : ''}
-      <div>К выплате: <b>${s.total}</b></div>
-    `;
+    const div = document.createElement("div");
+    div.style.whiteSpace = "pre-line"; // сохраняем переносы
+    div.textContent = blockText;
+    div.style.marginBottom = "6px"; // небольшой отступ между сотрудниками
+    container.appendChild(div);
 
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = getManualText(name);
-    input.placeholder = "-300 аванс или +500 дорасчёт";
-    input.style.width = "100%";
-    input.style.marginTop = "4px";
-    input.addEventListener("change", e => {
-      setManualText(name, e.target.value);
-      const newSummary = calculateSalary(start, end);
-      renderSalarySummary(start, end, newSummary);
-    });
-
-    block.appendChild(input);
-    list.appendChild(block);
+    totalAll += s.total;
   });
+
+  // Итог по всем
+  const totalDiv = document.createElement("div");
+  totalDiv.style.fontWeight = "700";
+  totalDiv.style.marginTop = "8px";
+  totalDiv.textContent = `Итого к выплате: ${totalAll}`;
+  container.appendChild(totalDiv);
 }
 
 // ================== КНОПКИ ==================
