@@ -20,10 +20,9 @@ const employeesEN = {
 
 let csvData = [];
 
-// localStorage key for manual texts
 const MANUAL_KEY = "salaryManualText_v1";
 
-// ---------- helpers to store manual text ----------
+// ---------- helpers ----------
 function loadManuals() {
   try {
     const raw = localStorage.getItem(MANUAL_KEY);
@@ -43,7 +42,7 @@ function saveManuals(obj) {
 }
 function setManualText(worker, text) {
   const all = loadManuals();
-  if (text == null || String(text).trim() === "") {
+  if (!text || String(text).trim() === "") {
     delete all[worker];
   } else {
     all[worker] = String(text);
@@ -54,12 +53,10 @@ function getManualText(worker) {
   const all = loadManuals();
   return all[worker] || "";
 }
-// parse numeric amount from manual text: first signed/unsigned number found
 function parseManualAmount(text) {
   if (!text) return 0;
   const m = String(text).match(/([+-]?\d+(?:[.,]\d{1,2})?)/);
   if (!m) return 0;
-  // replace comma with dot, parse float, round to integer
   const normalized = m[1].replace(",", ".");
   const v = parseFloat(normalized);
   return isNaN(v) ? 0 : Math.round(v);
@@ -88,7 +85,7 @@ function parseDate(s) {
   return null;
 }
 
-// ================== load schedule and render table ==================
+// ================== load schedule ==================
 async function loadSchedule() {
   try {
     const resp = await fetch(CSV_URL);
@@ -127,7 +124,6 @@ function calculateSalary(periodStart, periodEnd) {
 
   const headerRow = csvData[0];
 
-  // count shifts from CSV
   for (let r = 1; r < csvData.length; r++) {
     const rawWorker = csvData[r][0];
     const worker = rawWorker ? rawWorker.trim() : "";
@@ -147,28 +143,16 @@ function calculateSalary(periodStart, periodEnd) {
     }
   }
 
-  // include employees that are in employeesRU but not present in csv (optional)
-  Object.keys(employeesRU).forEach(w => {
-    if (!summary[w]) {
-      // keep only if manual exists (we'll include it below)
-      // create stub with zeros
-      // summary[w] = { shifts: 0, rate: employeesRU[w].rate, total: 0 };
-    }
-  });
-
-  // apply manual texts (from localStorage)
   const manuals = loadManuals();
   Object.keys(manuals).forEach(worker => {
     const text = manuals[worker];
-    const amount = parseManualAmount(text); // integer
+    const amount = parseManualAmount(text);
     if (summary[worker]) {
-      // add amount to total
       summary[worker].manualText = text;
       summary[worker].manualAmount = amount;
       summary[worker].total = Number(summary[worker].total || 0) + Number(amount || 0);
     } else {
-      // not in summary (no shifts), but has manual -> include if amount != 0 or text not empty
-      if (text && (amount !== 0 || text.trim() !== "")) {
+      if (text.trim() !== "") {
         const rate = (employeesRU[worker] && employeesRU[worker].rate) || 0;
         summary[worker] = {
           shifts: 0,
@@ -181,7 +165,6 @@ function calculateSalary(periodStart, periodEnd) {
     }
   });
 
-  // final normalization
   Object.keys(summary).forEach(w => {
     summary[w].shifts = summary[w].shifts || 0;
     summary[w].rate = summary[w].rate || 0;
@@ -193,12 +176,11 @@ function calculateSalary(periodStart, periodEnd) {
   return summary;
 }
 
-// ================== formatting messages ==================
+// ================== formatting ==================
 function formatSalaryMessageEN(start, end, summary) {
   let msg = `Salary report for the period ${start.toLocaleDateString('en-GB')} - ${end.toLocaleDateString('en-GB')}\n\n`;
   let grand = 0;
 
-  // sort by name (english if available)
   const names = Object.keys(summary).sort((a,b) => {
     const A = (employeesEN[a] && employeesEN[a].name) || a;
     const B = (employeesEN[b] && employeesEN[b].name) || b;
@@ -209,10 +191,7 @@ function formatSalaryMessageEN(start, end, summary) {
     const s = summary[w];
     const en = employeesEN[w] || { name: w, position: "" };
     let line = `${en.name} ${en.position ? "(" + en.position + ")" : ""} — ${s.total}`;
-    if (s.manualText) {
-      // include manual text in parentheses, but without word "manual"
-      line += ` (${s.manualText})`;
-    }
+    if (s.manualText) line += ` (${s.manualText})`;
     msg += line + "\n";
     grand += Number(s.total) || 0;
   });
@@ -237,7 +216,7 @@ function formatSalaryMessageRU(start, end, summary) {
   return msg;
 }
 
-// ================== render interactive summary (with manual text inputs) ==================
+// ================== render summary (COMPACT) ==================
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
   container.innerHTML = "";
@@ -245,14 +224,14 @@ function renderSalarySummary(start, end, summary) {
   const heading = document.createElement("div");
   heading.textContent = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
   heading.style.fontWeight = "600";
-  heading.style.marginBottom = "8px";
+  heading.style.marginBottom = "4px";
   container.appendChild(heading);
 
-  // action buttons row: regenerate, copy EN
+  // actions
   const actions = document.createElement("div");
   actions.style.display = "flex";
-  actions.style.gap = "8px";
-  actions.style.marginBottom = "8px";
+  actions.style.gap = "6px";
+  actions.style.marginBottom = "6px";
 
   const regen = document.createElement("button");
   regen.textContent = "Regenerate";
@@ -262,63 +241,69 @@ function renderSalarySummary(start, end, summary) {
   });
   actions.appendChild(regen);
 
-  const copyBtn = document.createElement("button");
-  copyBtn.textContent = "Copy EN to clipboard";
-  copyBtn.addEventListener("click", () => {
+  const copyEN = document.createElement("button");
+  copyEN.textContent = "Copy EN";
+  copyEN.addEventListener("click", () => {
     const txt = formatSalaryMessageEN(start, end, summary);
-    navigator.clipboard && navigator.clipboard.writeText(txt).then(() => {
-      alert("English report copied to clipboard");
-    }).catch(() => {
-      prompt("Copy the text manually:", txt);
-    });
+    navigator.clipboard?.writeText(txt)
+      .then(() => alert("English report copied"))
+      .catch(() => prompt("Copy manually:", txt));
   });
-  actions.appendChild(copyBtn);
+  actions.appendChild(copyEN);
+
+  const copyRU = document.createElement("button");
+  copyRU.textContent = "Copy RU";
+  copyRU.addEventListener("click", () => {
+    const txt = formatSalaryMessageRU(start, end, summary);
+    navigator.clipboard?.writeText(txt)
+      .then(() => alert("Русский отчёт скопирован"))
+      .catch(() => prompt("Скопируйте вручную:", txt));
+  });
+  actions.appendChild(copyRU);
 
   container.appendChild(actions);
 
-  // --------------- REPLACED: vertical list instead of table ---------------
+  // compact list
   const list = document.createElement("div");
   list.style.display = "flex";
   list.style.flexDirection = "column";
-  list.style.gap = "12px";
-  list.style.marginBottom = "12px";
+  list.style.gap = "6px";
+  list.style.marginBottom = "8px";
 
-  // union of summary keys and employeesRU keys
   const namesSet = new Set([...Object.keys(summary), ...Object.keys(employeesRU)]);
   const names = Array.from(namesSet).sort((a,b) => a.localeCompare(b, 'ru'));
 
   names.forEach(name => {
     const s = summary[name] || { shifts: 0, rate: (employeesRU[name] && employeesRU[name].rate) || 0, total: 0, manualText: "", manualAmount: 0 };
-
     const pos = (employeesRU[name] && employeesRU[name].position) || "";
 
     const block = document.createElement("div");
-    block.style.padding = "10px";
-    block.style.border = "1px solid #ddd";
-    block.style.borderRadius = "6px";
-    block.style.background = "#fafafa";
+    block.style.padding = "5px 6px";
+    block.style.border = "1px solid #ccc";
+    block.style.borderRadius = "4px";
+    block.style.background = "#f5f5f5";
+    block.style.lineHeight = "1.2";
 
-    // main text
-    const mainHTML = `
-      <div style="font-weight:600; margin-bottom:6px;">${name} ${pos ? "(" + pos + ")" : ""}</div>
+    block.innerHTML = `
+      <div style="font-weight:600; margin-bottom:2px;">${name} ${pos ? "(" + pos + ")" : ""}</div>
       <div>Смен: ${s.shifts}</div>
       <div>Ставка: ${s.rate}</div>
       <div>К выплате: <b>${s.total}</b>${s.manualText ? ` (${s.manualText})` : ''}</div>
     `;
-    block.innerHTML = mainHTML;
 
-    // manual input
     const input = document.createElement("input");
     input.type = "text";
     input.value = getManualText(name);
-    input.placeholder = "-300 аванс или +500 дорасчёт";
+    input.placeholder = "-300 аванс или +500";
     input.style.width = "100%";
-    input.style.marginTop = "8px";
+    input.style.marginTop = "4px";
     input.style.boxSizing = "border-box";
+    input.style.padding = "2px 4px";
+    input.style.fontSize = "13px";
+
     input.addEventListener("change", (e) => {
       const val = e.target.value;
       setManualText(name, val);
-      // recalc and rerender
       const newSummary = calculateSalary(start, end);
       renderSalarySummary(start, end, newSummary);
     });
@@ -328,22 +313,20 @@ function renderSalarySummary(start, end, summary) {
   });
 
   container.appendChild(list);
-  // --------------- END REPLACED BLOCK ---------------
 
   // grand total
   let grand = 0;
   Object.values(summary).forEach(s => grand += Number(s.total) || 0);
   const totalDiv = document.createElement("div");
-  totalDiv.style.marginTop = "6px";
+  totalDiv.style.marginTop = "4px";
   totalDiv.style.fontWeight = "700";
   totalDiv.textContent = `Итого к выплате: ${grand}`;
   container.appendChild(totalDiv);
 
-  // note about storage
   const note = document.createElement("div");
-  note.style.marginTop = "6px";
-  note.style.fontSize = "13px";
-  note.innerHTML = `<i>Ручные корректировки сохраняются локально в браузере (видны только вам).</i>`;
+  note.style.marginTop = "4px";
+  note.style.fontSize = "12px";
+  note.innerHTML = `<i>Ручные корректировки сохраняются локально в браузере.</i>`;
   container.appendChild(note);
 }
 
@@ -364,7 +347,7 @@ function generateSalary() {
   renderSalarySummary(start, end, summary);
 }
 
-// ================== generate schedule image (unchanged) ==================
+// ================== generate schedule image ==================
 function generateScheduleImage(callback = null) {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
@@ -375,7 +358,7 @@ function generateScheduleImage(callback = null) {
 
   const headerRow = csvData[0] || [];
   const table = document.createElement("table");
-  table.style.backgroundColor = "#ffffff"; // белый фон
+  table.style.backgroundColor = "#ffffff";
   const tbody = document.createElement("tbody");
 
   const header = document.createElement("tr");
@@ -429,7 +412,7 @@ function generateScheduleImage(callback = null) {
   });
 }
 
-// ================== send to Telegram (text only, English) ==================
+// ================== send to Telegram ==================
 async function sendSalary() {
   const yearSelect = document.getElementById("yearSelect");
   const monthSelect = document.getElementById("monthSelect");
@@ -465,11 +448,9 @@ async function sendSalary() {
 
 // ================== START ==================
 document.addEventListener("DOMContentLoaded", () => {
-  // current date
   const currentDateEl = document.getElementById("current-date");
   if (currentDateEl) currentDateEl.textContent = new Date().toLocaleDateString("ru-RU");
 
-  // autoselect current month/half
   (function() {
     const monthSelect = document.getElementById("monthSelect");
     const halfSelect = document.getElementById("halfSelect");
@@ -477,24 +458,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!monthSelect || !halfSelect || !yearSelect) return;
 
     const now = new Date();
-    monthSelect.value = now.getMonth(); // 0-11
+    monthSelect.value = now.getMonth();
     halfSelect.value = now.getDate() <= 15 ? "1" : "2";
 
-    // if yearSelect has current year option, set it (safe)
     const yOpt = Array.from(yearSelect.options).find(o => +o.value === now.getFullYear());
     if (yOpt) yearSelect.value = now.getFullYear();
   })();
 
-  // load schedule and after render, auto-generate current report
   loadSchedule().then(() => {
-    // auto-scroll to today (if applicable)
     const today = new Date();
     const table = document.getElementById("schedule");
-    const headerRow = table.querySelector("thead tr") || table.querySelector("tbody tr"); // if no thead
+    const headerRow = table.querySelector("thead tr") || table.querySelector("tbody tr");
     if (headerRow) {
       let scrollToIdx = 0;
       const ths = headerRow.children;
-      for (let i = 1; i < ths.length; i++) { // skip first col
+      for (let i = 1; i < ths.length; i++) {
         const cellDate = parseDate(ths[i].textContent);
         if (cellDate && cellDate >= today) {
           scrollToIdx = i;
@@ -508,11 +486,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // auto-generate salary for current selection
     generateSalary();
   });
 
-  // buttons
   const genBtn = document.getElementById("generateBtn");
   if (genBtn) genBtn.addEventListener("click", generateSalary);
 
