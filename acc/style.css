@@ -53,12 +53,19 @@ td {
     min-width: 20px;
 }
 
+
+
+
 table td:first-child {
     position: sticky;
     left: 0;
     background: #fff;
     font-weight: bold;
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
 }
+
 
 .shift-1 { background: #a6e6a6; }
 .shift-0 { background: #fff7a6; }
@@ -191,3 +198,5 @@ td.today {
     font-size: 14px;
     color: #333;
 }
+
+
