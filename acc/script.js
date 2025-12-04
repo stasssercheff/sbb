@@ -241,6 +241,24 @@ async function sendSalary() {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("current-date").textContent = new Date().toLocaleDateString("ru-RU");
 
+
+
+  // ===== Автовыбор текущего периода для ЗП =====
+  (function() {
+    const monthSelect = document.getElementById("monthSelect");
+    const halfSelect = document.getElementById("halfSelect");
+    if (!monthSelect || !halfSelect) return;
+
+    const now = new Date();
+    const currentMonth = now.getMonth(); // 0–11
+    const currentHalf = now.getDate() <= 15 ? "1" : "2";
+
+    monthSelect.value = currentMonth; // у тебя в value месяца стоит 0–11
+    halfSelect.value = currentHalf;
+  })();
+
+  
+  
   loadSchedule();loadSchedule().then(() => {
   const today = new Date();
   const table = document.getElementById("schedule");
