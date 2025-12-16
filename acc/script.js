@@ -1,3 +1,5 @@
+// script.js
+
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpNWtZImdMKoOxbV6McfEXEB67ck7nzA1EcBXNOFdnDTK4o9gniAuz82paEdGAyRSlo6dFKO9zCyLP/pub?gid=0&single=true&output=csv";
 
 const employeesRU = {
@@ -144,6 +146,7 @@ function parseManualAmount(text) {
 }
 
 // ================== ТЕКСТ ЗАРПЛАТЫ ==================
+// ---- ПРАВКА: корректировка перед К выплате ----
 function formatSalaryMessageRU(start, end, summary) {
   let msg = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\n\n`;
   let total = 0;
@@ -171,34 +174,35 @@ function formatSalaryMessageEN(start, end, summary) {
   return msg;
 }
 
-// ================== СОХРАНЕНИЕ АКТУАЛЬНЫХ КОРРЕКТИРОВОК ==================
-function saveCurrentAdjustments(summary) {
-  for (let w in summary) {
-    const s = summary[w];
-    if (s.manualAmount) setManualText(w, s.manualAmount);
-    else setManualText(w, "");
-  }
-}
+
+
+
+
+
+
 
 // ================== ОТОБРАЖЕНИЕ ОТЧЕТА ==================
+// ---- КОРРЕКТИРОВКА ЗАРПЛАТЫ С ДИНАМИЧЕСКИМИ ИЗМЕНЕНИЯМИ ----
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
-  container.innerHTML = "";
+  container.innerHTML = ""; // очищаем контейнер
 
   const heading = document.createElement("div");
-  heading.textContent = `Salary for period ${start.toLocaleDateString('en-GB')} - ${end.toLocaleDateString('en-GB')}`;
+  heading.textContent = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
   heading.style.fontWeight = "600";
   heading.style.marginBottom = "8px";
   container.appendChild(heading);
 
-  const names = Object.keys(summary).sort((a,b) => a.localeCompare(b,'ru'));
+  const names = Object.keys(summary).sort((a, b) => a.localeCompare(b, "ru"));
+
   const totalDiv = document.createElement("div");
   totalDiv.style.fontWeight = "700";
   totalDiv.style.marginTop = "12px";
 
-  names.forEach(name => {
+  // Блок для каждого сотрудника
+  names.forEach((name) => {
     const s = summary[name];
-    const en = employeesEN[name] || { name, position: "", rate: 0 };
+    const pos = (employeesRU[name] && employeesRU[name].position) || "";
 
     const div = document.createElement("div");
     div.style.whiteSpace = "pre-line";
@@ -208,13 +212,16 @@ function renderSalarySummary(start, end, summary) {
     div.style.borderRadius = "6px";
     div.style.backgroundColor = "#fafafa";
 
-    const textBefore = `${en.name} (${en.position})\nShifts: ${s.shifts}\nRate: ${s.rate}`;
+    // Базовый текст до корректировки
+    const textBefore = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
 
+    // input для корректировки с улучшенными стилями
     const input = document.createElement("input");
     input.type = "number";
     input.value = s.manualAmount || 0;
-    input.placeholder = "Adjustment";
+    input.placeholder = "Корректировка";
     input.style.marginTop = "4px";
+    input.style.marginLeft = "0";
     input.style.width = "100px";
     input.style.padding = "4px 6px";
     input.style.border = "1px solid #ccc";
@@ -229,24 +236,27 @@ function renderSalarySummary(start, end, summary) {
     totalLine.style.fontWeight = "500";
     totalLine.style.marginTop = "4px";
 
+    // Функция обновления отображения
     const updateBlock = () => {
       s.manualAmount = parseInt(input.value) || 0;
       const totalForWorker = s.shifts * s.rate + s.manualAmount;
 
       totalLine.textContent =
-        (s.manualAmount ? `Adjustment: ${s.manualAmount}\n` : "") +
-        `Total: ${totalForWorker}`;
+        (s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "") +
+        `К выплате: ${totalForWorker}`;
 
+      // Общий блок
       div.textContent = textBefore + "\n";
       div.appendChild(totalLine);
       div.appendChild(input);
 
+      // Пересчёт итогового totalAll
       let sumAll = 0;
-      names.forEach(n => {
+      names.forEach((n) => {
         const sw = summary[n];
         sumAll += sw.shifts * sw.rate + (sw.manualAmount || 0);
       });
-      totalDiv.textContent = `Total payout: ${sumAll}`;
+      totalDiv.textContent = `Итого к выплате: ${sumAll}`;
     };
 
     input.addEventListener("input", updateBlock);
@@ -255,6 +265,7 @@ function renderSalarySummary(start, end, summary) {
     container.appendChild(div);
   });
 
+  // Итог после всех сотрудников
   container.appendChild(totalDiv);
 }
 
@@ -346,10 +357,6 @@ async function sendSalary() {
   const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
 
   const summary = calculateSalary(start, end);
-
-  // сохраняем все актуальные корректировки в localStorage
-  saveCurrentAdjustments(summary);
-
   const msg = formatSalaryMessageEN(start, end, summary);
 
   if (!msg.trim()) {
