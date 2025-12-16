@@ -347,8 +347,25 @@ function generateScheduleImage(callback = null) {
   });
 }
 
+function syncManualAdjustmentsFromUI() {
+  const blocks = document.querySelectorAll("#salarySummary > div");
+
+  blocks.forEach(block => {
+    const input = block.querySelector("input[type='number']");
+    if (!input) return;
+
+    const nameMatch = block.textContent.match(/^(.+?) \(/);
+    if (!nameMatch) return;
+
+    const worker = nameMatch[1].trim();
+    setManualText(worker, input.value);
+  });
+}
+
+
 // ================== ОТПРАВКА ТЕКСТА В ТЕЛЕГРАМ ==================
 async function sendSalary() {
+  syncManualAdjustmentsFromUI(); // ← ВАЖНО
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
   const year = new Date().getFullYear();
