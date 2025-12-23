@@ -1,24 +1,42 @@
+
 let currentLang = localStorage.getItem("lang") || "ru";
 let translations = {};
 
-const LANG_URL = "/sbb/lang.json";
-
 // Загружаем словарь из JSON
 async function loadTranslations() {
-  try {
-    const res = await fetch(LANG_URL);
-    if (!res.ok) throw new Error("HTTP " + res.status);
+  let loaded = false;
+  let paths = [
+    "./lang.json",
+    "../lang.json",
+    "../../lang.json",
+    "../../../lang.json",
+    "../../../../lang.json",
+    "../../../../../lang.json"
+  ];
 
-    translations = await res.json();
+  for (let path of paths) {
+    try {
+      const res = await fetch(path);
+      if (res.ok) {
+        translations = await res.json();
+        loaded = true;
+        break;
+      }
+    } catch (e) {
+      // пропускаем неудачные пути
+    }
+  }
+
+  if (loaded) {
     switchLanguage(currentLang);
-  } catch (e) {
-    console.error("Не удалось загрузить lang.json:", e);
+  } else {
+    console.error("Не найден lang.json ни по одному пути");
   }
 }
 
 function switchLanguage(lang) {
   currentLang = lang;
-  localStorage.setItem("lang", lang); // сохраняем только язык интерфейса
+  localStorage.setItem("lang", lang); // ✅ сохраняем только интерфейсный язык
 
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
@@ -34,7 +52,7 @@ function switchLanguage(lang) {
   // обновляем дату
   const dateEl = document.getElementById("current-date");
   if (dateEl) {
-    const options = { year: "numeric", month: "2-digit", day: "2-digit" };
+    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
     dateEl.textContent = new Date().toLocaleDateString(
       translations.date_format?.[lang] || lang,
       options
@@ -44,9 +62,7 @@ function switchLanguage(lang) {
 
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".lang-btn").forEach(btn => {
-    btn.addEventListener("click", () =>
-      switchLanguage(btn.dataset.lang)
-    );
+    btn.addEventListener("click", () => switchLanguage(btn.dataset.lang));
   });
 
   loadTranslations();
