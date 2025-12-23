@@ -5,7 +5,7 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpNWtZImdMKoOx
 const employeesRU = {
   "Стас": { position: "Шеф", rate: 1300 },
   "Максим": { position: "Повар", rate: 700 },
-  "Рома": { position: "Повар", rate: 600 },
+  "Повар": { position: "Повар", rate: 600 },
   "Баха": { position: "Повар", rate: 650 },
   "Ирина": { position: "Кондитер", rate: 650 }
 };
@@ -13,7 +13,7 @@ const employeesRU = {
 const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
   "Максим": { name: "Maksim", position: "Cook", rate: 700 },
-  "Рома": { name: "Roma", position: "Cook", rate: 600 },
+  "Повар": { name: "Roma", position: "Cook", rate: 600 },
   "Баха": { name: "Baha", position: "Cook", rate: 650 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 650 }
 };
