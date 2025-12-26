@@ -71,6 +71,8 @@ table td:first-child {
 .shift-0 { background: #fff7a6; }
 .shift-VR { background: #00ffff; }
 .shift-Б { background: #cce0ff; }
+.shift-partial { background: #d3f7c3; }
+.shift-double { background: #5dde26; }
 
 td.today {
     background-color: #00ff9d !important;
