@@ -68,11 +68,15 @@ async function loadSchedule() {
         td.textContent = cell;
 
         if (rIdx > 0 && cIdx > 0) {
-          if (cell === "1") td.classList.add("shift-1");
-          if (cell === "0") td.classList.add("shift-0");
-          if (cell === "VR") td.classList.add("shift-VR");
-          if (cell === "Б") td.classList.add("shift-Б");
-        }
+  const shiftValue = parseShiftValue(cell);
+
+  if (shiftValue > 0 && shiftValue < 1) { td.classList.add("shift-partial"); // 0.1–0.9  }
+  if (shiftValue > 1) { td.classList.add("shift-double"); // 1.1–2  }
+  if (cell === "1" || cell === "3") td.classList.add("shift-1");
+  if (cell === "0") td.classList.add("shift-0");
+  if (cell === "VR") td.classList.add("shift-VR");
+  if (cell === "Б") td.classList.add("shift-Б");
+}
 
         tr.appendChild(td);
       });
