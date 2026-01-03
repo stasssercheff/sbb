@@ -10,10 +10,37 @@ const employeesRU = {
   "Ирина": { position: "Кондитер", rate: 650 }
 };
 
+
 const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
   "Максим": { name: "Maksim", position: "Cook", rate: 700 },
   "Повар": { name: "Cook", position: "Cook", rate: 600 },
+  "Баха": { name: "Baha", position: "Cook", rate: 650 },
+  "Ирина": { name: "Irina", position: "Pastry", rate: 650 }
+};
+
+
+
+
+
+
+
+// script.js
+
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpNWtZImdMKoOxbV6McfEXEB67ck7nzA1EcBXNOFdnDTK4o9gniAuz82paEdGAyRSlo6dFKO9zCyLP/pub?gid=0&single=true&output=csv";
+
+const employeesRU = {
+  "Стас": { position: "Шеф", rate: 1300 },
+  "Макс Р": { position: "Повар", rate: 700 },
+  "Макс Ж": { position: "Повар", rate: 600 },
+  "Баха": { position: "Повар", rate: 650 },
+  "Ирина": { position: "Кондитер", rate: 650 }
+};
+
+const employeesEN = {
+  "Стас": { name: "Stas", position: "Chef", rate: 1300 },
+  "Макс Р": { name: "Maks R", position: "Cook", rate: 700 },
+  "Макс Ж": { name: "Maks G", position: "Cook", rate: 600 },
   "Баха": { name: "Baha", position: "Cook", rate: 650 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 650 }
 };
@@ -41,16 +68,6 @@ function parseDate(s) {
   return null;
 }
 
-// ====== НОВОЕ: парсер значения смены ======
-function parseShiftValue(cell) {
-  if (!cell) return 0;
-  const v = String(cell).trim().replace(",", ".");
-  if (v === "3") return 1; // заготовочная смена
-  const num = parseFloat(v);
-  if (!isNaN(num) && num >= 0 && num <= 2) return num;
-  return 0;
-}
-
 // ================== ЗАГРУЗКА ГРАФИКА ==================
 async function loadSchedule() {
   try {
@@ -68,15 +85,11 @@ async function loadSchedule() {
         td.textContent = cell;
 
         if (rIdx > 0 && cIdx > 0) {
-  const shiftValue = parseShiftValue(cell);
-
-  if (shiftValue > 0 && shiftValue < 1) { td.classList.add("shift-partial"); } 
-  if (shiftValue > 1) { td.classList.add("shift-double"); }
-  if (cell === "1" || cell === "3") td.classList.add("shift-1");
-  if (cell === "0") td.classList.add("shift-0");
-  if (cell === "VR") td.classList.add("shift-VR");
-  if (cell === "Б") td.classList.add("shift-Б");
-}
+          if (cell === "1") td.classList.add("shift-1");
+          if (cell === "0") td.classList.add("shift-0");
+          if (cell === "VR") td.classList.add("shift-VR");
+          if (cell === "Б") td.classList.add("shift-Б");
+        }
 
         tr.appendChild(td);
       });
@@ -101,26 +114,17 @@ function calculateSalary(periodStart, periodEnd) {
       if (!date) continue;
 
       if (date >= periodStart && date <= periodEnd) {
-        const shiftValue = parseShiftValue(csvData[r][c]);
-
-        if (shiftValue > 0) {
-          if (!summary[worker]) {
-            summary[worker] = {
-              shifts: 0,
-              rate: employeesRU[worker].rate,
-              total: 0,
-              manualAmount: 0
-            };
-          }
-
-          summary[worker].shifts += shiftValue;
-          summary[worker].total += shiftValue * employeesRU[worker].rate;
+        const shift = csvData[r][c].trim();
+        if (shift === "1") {
+          if (!summary[worker]) summary[worker] = { shifts: 0, rate: employeesRU[worker].rate, total: 0, manualAmount: 0 };
+          summary[worker].shifts++;
+          summary[worker].total += employeesRU[worker].rate;
         }
       }
     }
   }
 
-  // корректировки
+  // добавляем корректировки
   const manuals = loadManuals();
   for (let w in manuals) {
     if (summary[w]) {
@@ -154,17 +158,61 @@ function setManualText(worker, text) {
   saveManuals(all);
 }
 
+function getManualText(worker) {
+  const all = loadManuals();
+  return all[worker] || "";
+}
+
 function parseManualAmount(text) {
   if (!text) return 0;
   const m = String(text).match(/([+-]?\d+(?:[.,]\d{1,2})?)/);
   if (!m) return 0;
-  return Math.round(parseFloat(m[1].replace(",", ".")));
+  const normalized = m[1].replace(",", ".");
+  const v = parseFloat(normalized);
+  return isNaN(v) ? 0 : Math.round(v);
 }
 
+// ================== ТЕКСТ ЗАРПЛАТЫ ==================
+// ---- ПРАВКА: корректировка перед К выплате ----
+function formatSalaryMessageRU(start, end, summary) {
+  let msg = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}\n\n`;
+  let total = 0;
+  for (let w in summary) {
+    const s = summary[w];
+    const manualPart = s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "";
+    msg += `${w} (${employeesRU[w].position})\nСмен: ${s.shifts}\nСтавка: ${s.rate}\n${manualPart}К выплате: ${s.total}\n\n`;
+    total += s.total;
+  }
+  msg += `Итого к выплате: ${total}`;
+  return msg;
+}
+
+function formatSalaryMessageEN(start, end, summary) {
+  let msg = `Salary report for the period ${start.toLocaleDateString('en-GB')} - ${end.toLocaleDateString('en-GB')}\n\n`;
+  let total = 0;
+  for (let w in summary) {
+    const s = summary[w];
+    const manualPart = s.manualAmount ? `Adjustment: ${s.manualAmount}\n` : "";
+    const en = employeesEN[w];
+    msg += `${en.name} (${en.position})\nShifts: ${s.shifts}\nRate: ${s.rate}\n${manualPart}Total: ${s.total}\n\n`;
+    total += s.total;
+  }
+  msg += `Total payout: ${total}`;
+  return msg;
+}
+
+
+
+
+
+
+
+
 // ================== ОТОБРАЖЕНИЕ ОТЧЕТА ==================
+// ---- КОРРЕКТИРОВКА ЗАРПЛАТЫ С ДИНАМИЧЕСКИМИ ИЗМЕНЕНИЯМИ ----
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
-  container.innerHTML = "";
+  container.innerHTML = ""; // очищаем контейнер
 
   const heading = document.createElement("div");
   heading.textContent = `ЗП за период ${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
@@ -173,13 +221,15 @@ function renderSalarySummary(start, end, summary) {
   container.appendChild(heading);
 
   const names = Object.keys(summary).sort((a, b) => a.localeCompare(b, "ru"));
+
   const totalDiv = document.createElement("div");
   totalDiv.style.fontWeight = "700";
   totalDiv.style.marginTop = "12px";
 
-  names.forEach(name => {
+  // Блок для каждого сотрудника
+  names.forEach((name) => {
     const s = summary[name];
-    const pos = employeesRU[name]?.position || "";
+    const pos = (employeesRU[name] && employeesRU[name].position) || "";
 
     const div = document.createElement("div");
     div.style.whiteSpace = "pre-line";
@@ -189,42 +239,60 @@ function renderSalarySummary(start, end, summary) {
     div.style.borderRadius = "6px";
     div.style.backgroundColor = "#fafafa";
 
+    // Базовый текст до корректировки
     const textBefore = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
 
+    // input для корректировки с улучшенными стилями
     const input = document.createElement("input");
     input.type = "number";
     input.value = s.manualAmount || 0;
+    input.placeholder = "Корректировка";
     input.style.marginTop = "4px";
+    input.style.marginLeft = "0";
     input.style.width = "100px";
+    input.style.padding = "4px 6px";
+    input.style.border = "1px solid #ccc";
+    input.style.borderRadius = "4px";
+    input.style.backgroundColor = "#f9f9f9";
+    input.style.fontSize = "14px";
+    input.style.transition = "all 0.2s";
+    input.addEventListener("focus", () => input.style.borderColor = "#66afe9");
+    input.addEventListener("blur", () => input.style.borderColor = "#ccc");
 
     const totalLine = document.createElement("div");
+    totalLine.style.fontWeight = "500";
+    totalLine.style.marginTop = "4px";
 
+    // Функция обновления отображения
     const updateBlock = () => {
       s.manualAmount = parseInt(input.value) || 0;
-      const base = Math.round(s.shifts * s.rate);
-      const total = base + s.manualAmount;
+      const totalForWorker = s.shifts * s.rate + s.manualAmount;
 
       totalLine.textContent =
         (s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "") +
-        `К выплате: ${total}`;
+        `К выплате: ${totalForWorker}`;
 
+      // Общий блок
       div.textContent = textBefore + "\n";
       div.appendChild(totalLine);
       div.appendChild(input);
 
+      // Пересчёт итогового totalAll
       let sumAll = 0;
-      names.forEach(n => {
+      names.forEach((n) => {
         const sw = summary[n];
-        sumAll += Math.round(sw.shifts * sw.rate) + (sw.manualAmount || 0);
+        sumAll += sw.shifts * sw.rate + (sw.manualAmount || 0);
       });
       totalDiv.textContent = `Итого к выплате: ${sumAll}`;
     };
 
     input.addEventListener("input", updateBlock);
     updateBlock();
+
     container.appendChild(div);
   });
 
+  // Итог после всех сотрудников
   container.appendChild(totalDiv);
 }
 
@@ -241,8 +309,148 @@ function generateSalary() {
   renderSalarySummary(start, end, summary);
 }
 
+// ================== СОХРАНЕНИЕ PNG ГРАФИКА ==================
+function generateScheduleImage(callback = null) {
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+  const year = new Date().getFullYear();
+
+  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+
+  const headerRow = csvData[0];
+  const table = document.createElement("table");
+  table.style.backgroundColor = "#ffffff";
+  const tbody = document.createElement("tbody");
+
+  const header = document.createElement("tr");
+  const empty = document.createElement("td");
+  empty.textContent = "Employee";
+  header.appendChild(empty);
+
+  for (let c = 1; c < headerRow.length; c++) {
+    const date = parseDate(headerRow[c]);
+    if (date && date >= start && date <= end) {
+      const th = document.createElement("td");
+      th.textContent = headerRow[c];
+      header.appendChild(th);
+    }
+  }
+  tbody.appendChild(header);
+
+  for (let r = 1; r < csvData.length; r++) {
+    const tr = document.createElement("tr");
+    const ruName = csvData[r][0].trim();
+    const en = employeesEN[ruName] || { name: ruName, position: "", rate: 0 };
+    const tdName = document.createElement("td");
+    tdName.textContent = en.name;
+    tr.appendChild(tdName);
+
+    for (let c = 1; c < headerRow.length; c++) {
+      const date = parseDate(headerRow[c]);
+      if (date && date >= start && date <= end) {
+        const td = document.createElement("td");
+        td.textContent = csvData[r][c];
+        if (csvData[r][c] === "1") td.style.backgroundColor = "#a6e6a6";
+        else if (csvData[r][c] === "0") td.style.backgroundColor = "#f0f0f0";
+        else if (csvData[r][c] === "VR") td.style.backgroundColor = "#ffd966";
+        else if (csvData[r][c] === "Б") td.style.backgroundColor = "#ff9999";
+        tr.appendChild(td);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  document.body.appendChild(table);
+
+  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = "schedule.png";
+    link.click();
+    table.remove();
+    if (callback) callback();
+  });
+}
+
+function syncManualAdjustmentsFromUI() {
+  const blocks = document.querySelectorAll("#salarySummary > div");
+
+  blocks.forEach(block => {
+    const input = block.querySelector("input[type='number']");
+    if (!input) return;
+
+    const nameMatch = block.textContent.match(/^(.+?) \(/);
+    if (!nameMatch) return;
+
+    const worker = nameMatch[1].trim();
+    setManualText(worker, input.value);
+  });
+}
+
+
+// ================== ОТПРАВКА ТЕКСТА В ТЕЛЕГРАМ ==================
+async function sendSalary() {
+  syncManualAdjustmentsFromUI(); // ← ВАЖНО
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+  const year = new Date().getFullYear();
+
+  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+
+  const summary = calculateSalary(start, end);
+  const msg = formatSalaryMessageEN(start, end, summary);
+
+  if (!msg.trim()) {
+    alert("Please generate the salary first");
+    return;
+  }
+
+  try {
+    await fetch("https://shbb1.stassser.workers.dev/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: "-1003149716465", text: msg })
+    });
+    alert("✅ Salary report sent");
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error sending salary report");
+  }
+}
+
 // ================== СТАРТ ==================
 document.addEventListener("DOMContentLoaded", () => {
-  loadSchedule();
+  document.getElementById("current-date").textContent = new Date().toLocaleDateString("ru-RU");
+
+  loadSchedule().then(() => {
+    const today = new Date();
+    const table = document.getElementById("schedule");
+    const headerRow = table.querySelector("thead tr") || table.querySelector("tbody tr");
+    if (!headerRow) return;
+
+    let scrollToIdx = 0;
+    const ths = headerRow.children;
+    for (let i = 1; i < ths.length; i++) {
+      const cellDate = parseDate(ths[i].textContent);
+      if (cellDate && cellDate >= today) {
+        scrollToIdx = i;
+        break;
+      }
+    }
+
+    const firstRow = table.querySelector("tbody tr");
+    if (firstRow) {
+      const td = firstRow.children[scrollToIdx];
+      if (td) td.scrollIntoView({ behavior: "smooth", inline: "center" });
+    }
+  });
+
   document.getElementById("generateBtn").addEventListener("click", generateSalary);
+  document.getElementById("downloadImageBtn").addEventListener("click", generateScheduleImage);
+  document.getElementById("sendSalaryToTelegram").addEventListener("click", sendSalary);
 });
+
+
