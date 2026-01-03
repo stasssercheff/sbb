@@ -71,6 +71,34 @@ async function loadSchedule() {
   });
 }
 
+// ================== ЛОКАЛЬНЫЕ КОРРЕКТИРОВКИ ==================
+const MANUAL_KEY = "salaryManualText_v1";
+
+function loadManuals() {
+  try {
+    return JSON.parse(localStorage.getItem(MANUAL_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveManuals(obj) {
+  localStorage.setItem(MANUAL_KEY, JSON.stringify(obj));
+}
+
+function setManualText(worker, value) {
+  const all = loadManuals();
+  if (!value) delete all[worker];
+  else all[worker] = String(value);
+  saveManuals(all);
+}
+
+function parseManualAmount(text) {
+  if (!text) return 0;
+  const m = String(text).match(/([+-]?\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
 // ================== РАСЧЁТ ЗАРПЛАТЫ ==================
 function calculateSalary(periodStart, periodEnd) {
   const summary = {};
@@ -108,34 +136,6 @@ function calculateSalary(periodStart, periodEnd) {
   return summary;
 }
 
-// ================== ЛОКАЛЬНЫЕ КОРРЕКТИРОВКИ ==================
-const MANUAL_KEY = "salaryManualText_v1";
-
-function loadManuals() {
-  try {
-    return JSON.parse(localStorage.getItem(MANUAL_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveManuals(obj) {
-  localStorage.setItem(MANUAL_KEY, JSON.stringify(obj));
-}
-
-function setManualText(worker, text) {
-  const all = loadManuals();
-  if (!text) delete all[worker];
-  else all[worker] = text;
-  saveManuals(all);
-}
-
-function parseManualAmount(text) {
-  if (!text) return 0;
-  const m = String(text).match(/([+-]?\d+)/);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
 // ================== ФОРМАТ СООБЩЕНИЯ ==================
 function formatSalaryMessageEN(start, end, summary) {
   let msg = `Salary report ${start.toLocaleDateString("en-GB")} - ${end.toLocaleDateString("en-GB")}\n\n`;
@@ -146,7 +146,8 @@ function formatSalaryMessageEN(start, end, summary) {
     const en = employeesEN[w];
     const sum = s.shifts * s.rate + (s.manualAmount || 0);
 
-    msg += `${en.name} (${en.position})\nShifts: ${s.shifts}\nRate: ${s.rate}\n`;
+    msg += `${en.name} (${en.position})\n`;
+    msg += `Shifts: ${s.shifts}\nRate: ${s.rate}\n`;
     if (s.manualAmount) msg += `Adjustment: ${s.manualAmount}\n`;
     msg += `Total: ${sum}\n\n`;
 
@@ -157,7 +158,7 @@ function formatSalaryMessageEN(start, end, summary) {
   return msg;
 }
 
-// ================== ОТОБРАЖЕНИЕ (ИСПРАВЛЕНО) ==================
+// ================== ОТОБРАЖЕНИЕ ==================
 function renderSalarySummary(start, end, summary) {
   const container = document.getElementById("salarySummary");
   container.innerHTML = "";
@@ -179,9 +180,7 @@ function renderSalarySummary(start, end, summary) {
     block.style.marginBottom = "8px";
     block.style.whiteSpace = "pre-line";
 
-    const info = document.createElement("div");
-    info.textContent = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
-    block.appendChild(info);
+    block.textContent = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
 
     const totalLine = document.createElement("div");
     totalLine.style.marginTop = "4px";
@@ -196,6 +195,10 @@ function renderSalarySummary(start, end, summary) {
 
     const recalc = () => {
       s.manualAmount = parseInt(input.value) || 0;
+
+      // 🔴 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
+      setManualText(name, s.manualAmount);
+
       const sum = s.shifts * s.rate + s.manualAmount;
       totalLine.textContent =
         (s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "") +
