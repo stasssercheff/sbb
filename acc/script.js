@@ -1,3 +1,4 @@
+
 // script.js
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpNWtZImdMKoOxbV6McfEXEB67ck7nzA1EcBXNOFdnDTK4o9gniAuz82paEdGAyRSlo6dFKO9zCyLP/pub?gid=0&single=true&output=csv";
@@ -10,37 +11,10 @@ const employeesRU = {
   "Ирина": { position: "Кондитер", rate: 650 }
 };
 
-
 const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
   "Максим": { name: "Maksim", position: "Cook", rate: 700 },
   "Повар": { name: "Cook", position: "Cook", rate: 600 },
-  "Баха": { name: "Baha", position: "Cook", rate: 650 },
-  "Ирина": { name: "Irina", position: "Pastry", rate: 650 }
-};
-
-
-
-
-
-
-
-// script.js
-
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpNWtZImdMKoOxbV6McfEXEB67ck7nzA1EcBXNOFdnDTK4o9gniAuz82paEdGAyRSlo6dFKO9zCyLP/pub?gid=0&single=true&output=csv";
-
-const employeesRU = {
-  "Стас": { position: "Шеф", rate: 1300 },
-  "Макс Р": { position: "Повар", rate: 700 },
-  "Макс Ж": { position: "Повар", rate: 600 },
-  "Баха": { position: "Повар", rate: 650 },
-  "Ирина": { position: "Кондитер", rate: 650 }
-};
-
-const employeesEN = {
-  "Стас": { name: "Stas", position: "Chef", rate: 1300 },
-  "Макс Р": { name: "Maks R", position: "Cook", rate: 700 },
-  "Макс Ж": { name: "Maks G", position: "Cook", rate: 600 },
   "Баха": { name: "Baha", position: "Cook", rate: 650 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 650 }
 };
