@@ -136,126 +136,103 @@ function calculateSalary(periodStart, periodEnd) {
   return summary;
 }
 
-// ================== ФОРМАТ СООБЩЕНИЯ ==================
-function formatSalaryMessageEN(start, end, summary) {
-  let msg = `Salary report ${start.toLocaleDateString("en-GB")} - ${end.toLocaleDateString("en-GB")}\n\n`;
-  let total = 0;
-
-  for (let w in summary) {
-    const s = summary[w];
-    const en = employeesEN[w];
-    const sum = s.shifts * s.rate + (s.manualAmount || 0);
-
-    msg += `${en.name} (${en.position})\n`;
-    msg += `Shifts: ${s.shifts}\nRate: ${s.rate}\n`;
-    if (s.manualAmount) msg += `Adjustment: ${s.manualAmount}\n`;
-    msg += `Total: ${sum}\n\n`;
-
-    total += sum;
+// ================== СОХРАНЕНИЕ PNG ГРАФИКА ==================
+function generateScheduleImage() {
+  if (!csvData || !csvData.length) {
+    alert("График не загружен");
+    return;
   }
 
-  msg += `Total payout: ${total}`;
-  return msg;
-}
-
-// ================== ОТОБРАЖЕНИЕ ==================
-function renderSalarySummary(start, end, summary) {
-  const container = document.getElementById("salarySummary");
-  container.innerHTML = "";
-
-  const names = Object.keys(summary).sort((a, b) => a.localeCompare(b, "ru"));
-
-  const totalDiv = document.createElement("div");
-  totalDiv.style.fontWeight = "700";
-  totalDiv.style.marginTop = "12px";
-
-  names.forEach(name => {
-    const s = summary[name];
-    const pos = employeesRU[name].position;
-
-    const block = document.createElement("div");
-    block.style.border = "1px solid #ddd";
-    block.style.borderRadius = "6px";
-    block.style.padding = "8px";
-    block.style.marginBottom = "8px";
-    block.style.whiteSpace = "pre-line";
-
-    block.textContent = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
-
-    const totalLine = document.createElement("div");
-    totalLine.style.marginTop = "4px";
-    block.appendChild(totalLine);
-
-    const input = document.createElement("input");
-    input.type = "number";
-    input.value = s.manualAmount || 0;
-    input.style.marginTop = "6px";
-    input.style.width = "120px";
-    block.appendChild(input);
-
-    const recalc = () => {
-      s.manualAmount = parseInt(input.value) || 0;
-
-      // 🔴 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
-      setManualText(name, s.manualAmount);
-
-      const sum = s.shifts * s.rate + s.manualAmount;
-      totalLine.textContent =
-        (s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "") +
-        `К выплате: ${sum}`;
-
-      let all = 0;
-      names.forEach(n => {
-        const x = summary[n];
-        all += x.shifts * x.rate + (x.manualAmount || 0);
-      });
-      totalDiv.textContent = `Итого к выплате: ${all}`;
-    };
-
-    input.addEventListener("input", recalc);
-    recalc();
-
-    container.appendChild(block);
-  });
-
-  container.appendChild(totalDiv);
-}
-
-// ================== КНОПКИ ==================
-function generateSalary() {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
-  const year = new Date().getFullYear();
+  const year = +document.getElementById("yearSelect").value;
 
-  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
-  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+  const start = half === "1"
+    ? new Date(year, month, 1)
+    : new Date(year, month, 16);
 
-  const summary = calculateSalary(start, end);
-  renderSalarySummary(start, end, summary);
-}
+  const end = half === "1"
+    ? new Date(year, month, 15)
+    : new Date(year, month + 1, 0);
 
-// ================== ОТПРАВКА ==================
-async function sendSalary() {
-  const month = +document.getElementById("monthSelect").value;
-  const half = document.getElementById("halfSelect").value;
-  const year = new Date().getFullYear();
+  const headerRow = csvData[0];
 
-  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
-  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+  const table = document.createElement("table");
+  table.style.borderCollapse = "collapse";
+  table.style.backgroundColor = "#ffffff";
+  table.style.fontSize = "12px";
 
-  const summary = calculateSalary(start, end);
-  const msg = formatSalaryMessageEN(start, end, summary);
+  const tbody = document.createElement("tbody");
 
-  await fetch("https://shbb1.stassser.workers.dev/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: "-1002937581100",
-      text: msg
-    })
+  const headerTr = document.createElement("tr");
+  const empty = document.createElement("td");
+  empty.textContent = "Employee";
+  empty.style.fontWeight = "600";
+  empty.style.padding = "4px 6px";
+  empty.style.border = "1px solid #ccc";
+  headerTr.appendChild(empty);
+
+  for (let c = 1; c < headerRow.length; c++) {
+    const date = parseDate(headerRow[c]);
+    if (date && date >= start && date <= end) {
+      const td = document.createElement("td");
+      td.textContent = headerRow[c];
+      td.style.fontWeight = "600";
+      td.style.padding = "4px 6px";
+      td.style.border = "1px solid #ccc";
+      headerTr.appendChild(td);
+    }
+  }
+  tbody.appendChild(headerTr);
+
+  for (let r = 1; r < csvData.length; r++) {
+    const ruName = csvData[r][0]?.trim();
+    if (!ruName) continue;
+
+    const tr = document.createElement("tr");
+
+    const en = employeesEN[ruName] || { name: ruName };
+    const nameTd = document.createElement("td");
+    nameTd.textContent = en.name;
+    nameTd.style.padding = "4px 6px";
+    nameTd.style.border = "1px solid #ccc";
+    tr.appendChild(nameTd);
+
+    for (let c = 1; c < headerRow.length; c++) {
+      const date = parseDate(headerRow[c]);
+      if (date && date >= start && date <= end) {
+        const val = csvData[r][c];
+        const td = document.createElement("td");
+        td.textContent = val;
+        td.style.textAlign = "center";
+        td.style.padding = "4px 6px";
+        td.style.border = "1px solid #ccc";
+
+        if (val === "1") td.style.backgroundColor = "#a6e6a6";
+        else if (val === "0") td.style.backgroundColor = "#f0f0f0";
+        else if (val === "VR") td.style.backgroundColor = "#ffd966";
+        else if (val === "Б") td.style.backgroundColor = "#ff9999";
+
+        tr.appendChild(td);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  document.body.appendChild(table);
+
+  html2canvas(table, {
+    scale: 2,
+    backgroundColor: "#ffffff",
+    useCORS: true
+  }).then(canvas => {
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = "schedule.png";
+    link.click();
+    table.remove();
   });
-
-  alert("Отправлено");
 }
 
 // ================== СТАРТ ==================
@@ -263,4 +240,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadSchedule();
   document.getElementById("generateBtn").onclick = generateSalary;
   document.getElementById("sendSalaryToTelegram").onclick = sendSalary;
+  document.getElementById("downloadImageBtn").onclick = generateScheduleImage;
 });
