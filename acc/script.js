@@ -233,6 +233,85 @@ function generateSalary() {
   const summary = calculateSalary(start, end);
   renderSalarySummary(start, end, summary);
 }
+// ================== СОХРАНЕНИЕ PNG ГРАФИКА ==================
+function generateScheduleImage(callback = null) {
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+  const year = new Date().getFullYear();
+
+  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+
+  const headerRow = csvData[0];
+  const table = document.createElement("table");
+  table.style.backgroundColor = "#ffffff";
+  const tbody = document.createElement("tbody");
+
+  const header = document.createElement("tr");
+  const empty = document.createElement("td");
+  empty.textContent = "Employee";
+  header.appendChild(empty);
+
+  for (let c = 1; c < headerRow.length; c++) {
+    const date = parseDate(headerRow[c]);
+    if (date && date >= start && date <= end) {
+      const th = document.createElement("td");
+      th.textContent = headerRow[c];
+      header.appendChild(th);
+    }
+  }
+  tbody.appendChild(header);
+
+  for (let r = 1; r < csvData.length; r++) {
+    const tr = document.createElement("tr");
+    const ruName = csvData[r][0].trim();
+    const en = employeesEN[ruName] || { name: ruName, position: "", rate: 0 };
+    const tdName = document.createElement("td");
+    tdName.textContent = en.name;
+    tr.appendChild(tdName);
+
+    for (let c = 1; c < headerRow.length; c++) {
+      const date = parseDate(headerRow[c]);
+      if (date && date >= start && date <= end) {
+        const td = document.createElement("td");
+        td.textContent = csvData[r][c];
+        if (csvData[r][c] === "1") td.style.backgroundColor = "#a6e6a6";
+        else if (csvData[r][c] === "0") td.style.backgroundColor = "#f0f0f0";
+        else if (csvData[r][c] === "VR") td.style.backgroundColor = "#ffd966";
+        else if (csvData[r][c] === "Б") td.style.backgroundColor = "#ff9999";
+        tr.appendChild(td);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  document.body.appendChild(table);
+
+  html2canvas(table, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = "schedule.png";
+    link.click();
+    table.remove();
+    if (callback) callback();
+  });
+}
+
+function syncManualAdjustmentsFromUI() {
+  const blocks = document.querySelectorAll("#salarySummary > div");
+
+  blocks.forEach(block => {
+    const input = block.querySelector("input[type='number']");
+    if (!input) return;
+
+    const nameMatch = block.textContent.match(/^(.+?) \(/);
+    if (!nameMatch) return;
+
+    const worker = nameMatch[1].trim();
+    setManualText(worker, input.value);
+  });
+}
 
 // ================== ОТПРАВКА ==================
 async function sendSalary() {
