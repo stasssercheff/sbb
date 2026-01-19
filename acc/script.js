@@ -61,7 +61,7 @@ async function loadSchedule() {
         if (cell === "1") td.classList.add("shift-1");
         if (cell === "0") td.classList.add("shift-0");
         if (cell === "VR") td.classList.add("shift-VR");
-        if (cell === "Б") td.classList.add("shift-Б");
+        if (cell === "3") td.classList.add("shift-1");
       }
 
       tr.appendChild(td);
