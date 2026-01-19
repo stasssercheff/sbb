@@ -61,7 +61,7 @@ async function loadSchedule() {
         if (cell === "1") td.classList.add("shift-1");
         if (cell === "0") td.classList.add("shift-0");
         if (cell === "VR") td.classList.add("shift-VR");
-        if (cell === "3") td.classList.add("shift-1");
+        if (cell === "3") td.classList.add("shift-3");
       }
 
       tr.appendChild(td);
@@ -114,7 +114,7 @@ function calculateSalary(periodStart, periodEnd) {
 
       if (date >= periodStart && date <= periodEnd) {
         const shift = csvData[r][c].trim();
-        if (shift === "1") {
+        if (shift === "1" || shift === "3") {
           if (!summary[worker]) {
             summary[worker] = {
               shifts: 0,
