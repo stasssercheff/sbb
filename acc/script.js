@@ -342,4 +342,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadSchedule();
   document.getElementById("generateBtn").onclick = generateSalary;
   document.getElementById("sendSalaryToTelegram").onclick = sendSalary;
+  document.getElementById("downloadImageBtn").onclick = generateScheduleImage;
 });
