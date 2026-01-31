@@ -13,7 +13,7 @@ const employeesRU = {
 const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
   "Максим": { name: "Maksim", position: "Cook", rate: 700 },
-  "Вадим": { name: "Vadim", position: "Cook", rate: 600 },
+  "Вадим": { name: "Vadim", position: "Cook", rate: 700 },
   "Денис": { name: "Denis", position: "Cook", rate: 600 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 700 }
 };
