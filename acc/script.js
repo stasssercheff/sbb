@@ -46,6 +46,68 @@ function parseDate(s) {
   return null;
 }
 
+function getPeriodFromUI() {
+  const month = +document.getElementById("monthSelect").value;
+  const half = document.getElementById("halfSelect").value;
+  const year = +document.getElementById("yearSelect").value;
+  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
+  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
+  return { month, half, year, start, end };
+}
+
+/** Те же ячейки, что на PNG: первая колонка — имя (EN), дальше даты периода */
+function buildScheduleSliceAoA(start, end) {
+  const headerRow = csvData[0];
+  const aoa = [];
+  const head = ["Employee"];
+  for (let c = 1; c < headerRow.length; c++) {
+    const date = parseDate(headerRow[c]);
+    if (date && date >= start && date <= end) head.push(headerRow[c]);
+  }
+  aoa.push(head);
+
+  for (let r = 1; r < csvData.length; r++) {
+    const ruName = csvData[r][0].trim();
+    const en = employeesEN[ruName] || { name: ruName, position: "", rate: 0 };
+    const row = [en.name];
+    for (let c = 1; c < headerRow.length; c++) {
+      const date = parseDate(headerRow[c]);
+      if (date && date >= start && date <= end) {
+        row.push(csvData[r][c]);
+      }
+    }
+    aoa.push(row);
+  }
+  return aoa;
+}
+
+function buildScheduleSliceTableElement(start, end) {
+  const aoa = buildScheduleSliceAoA(start, end);
+  const table = document.createElement("table");
+  table.style.backgroundColor = "#ffffff";
+  const tbody = document.createElement("tbody");
+
+  aoa.forEach((row, rIdx) => {
+    const tr = document.createElement("tr");
+    row.forEach((cell, cIdx) => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      if (rIdx > 0 && cIdx > 0) {
+        if (cell === "1") td.style.backgroundColor = "#a6e6a6";
+        else if (cell === "0") td.style.backgroundColor = "#f0f0f0";
+        else if (cell === "VR") td.style.backgroundColor = "#ffd966";
+        else if (cell === "3") td.style.backgroundColor = "#b4c6e7";
+        else if (cell === "Б") td.style.backgroundColor = "#ff9999";
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  return table;
+}
+
 // ================== ЗАГРУЗКА ГРАФИКА ==================
 async function loadSchedule() {
   const resp = await fetch(CSV_URL);
@@ -228,79 +290,49 @@ function renderSalarySummary(start, end, summary) {
 
 // ================== КНОПКИ ==================
 function generateSalary() {
-  const month = +document.getElementById("monthSelect").value;
-  const half = document.getElementById("halfSelect").value;
-  const year = new Date().getFullYear();
-
-  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
-  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
-
+  const { start, end } = getPeriodFromUI();
   const summary = calculateSalary(start, end);
   renderSalarySummary(start, end, summary);
 }
-// ================== СОХРАНЕНИЕ PNG ГРАФИКА ==================
+
+// ================== PNG + XLSX (один фрагмент графика) ==================
 function generateScheduleImage(callback = null) {
-  const month = +document.getElementById("monthSelect").value;
-  const half = document.getElementById("halfSelect").value;
-  const year = new Date().getFullYear();
-
-  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
-  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
-
-  const headerRow = csvData[0];
-  const table = document.createElement("table");
-  table.style.backgroundColor = "#ffffff";
-  const tbody = document.createElement("tbody");
-
-  const header = document.createElement("tr");
-  const empty = document.createElement("td");
-  empty.textContent = "Employee";
-  header.appendChild(empty);
-
-  for (let c = 1; c < headerRow.length; c++) {
-    const date = parseDate(headerRow[c]);
-    if (date && date >= start && date <= end) {
-      const th = document.createElement("td");
-      th.textContent = headerRow[c];
-      header.appendChild(th);
-    }
-  }
-  tbody.appendChild(header);
-
-  for (let r = 1; r < csvData.length; r++) {
-    const tr = document.createElement("tr");
-    const ruName = csvData[r][0].trim();
-    const en = employeesEN[ruName] || { name: ruName, position: "", rate: 0 };
-    const tdName = document.createElement("td");
-    tdName.textContent = en.name;
-    tr.appendChild(tdName);
-
-    for (let c = 1; c < headerRow.length; c++) {
-      const date = parseDate(headerRow[c]);
-      if (date && date >= start && date <= end) {
-        const td = document.createElement("td");
-        td.textContent = csvData[r][c];
-        if (csvData[r][c] === "1") td.style.backgroundColor = "#a6e6a6";
-        else if (csvData[r][c] === "0") td.style.backgroundColor = "#f0f0f0";
-        else if (csvData[r][c] === "VR") td.style.backgroundColor = "#ffd966";
-        else if (csvData[r][c] === "Б") td.style.backgroundColor = "#ff9999";
-        tr.appendChild(td);
-      }
-    }
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
+  const { start, end, year, month, half } = getPeriodFromUI();
+  const table = buildScheduleSliceTableElement(start, end);
   document.body.appendChild(table);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const pngName = `schedule_${year}-${pad(month + 1)}_${half === "1" ? "01-15" : "16-31"}.png`;
 
   html2canvas(table, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
-    link.download = "schedule.png";
+    link.download = pngName;
     link.click();
     table.remove();
     if (callback) callback();
   });
+}
+
+function downloadScheduleXlsx() {
+  if (typeof XLSX === "undefined") {
+    alert("Не загрузилась библиотека для Excel. Проверьте сеть и обновите страницу.");
+    return;
+  }
+  const { start, end, year, month, half } = getPeriodFromUI();
+  const aoa = buildScheduleSliceAoA(start, end);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const fileName = `schedule_${year}-${pad(month + 1)}_${half === "1" ? "01-15" : "16-31"}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+function downloadSchedulePngAndXlsx() {
+  downloadScheduleXlsx();
+  generateScheduleImage();
 }
 
 function syncManualAdjustmentsFromUI() {
@@ -320,13 +352,7 @@ function syncManualAdjustmentsFromUI() {
 
 // ================== ОТПРАВКА ==================
 async function sendSalary() {
-  const month = +document.getElementById("monthSelect").value;
-  const half = document.getElementById("halfSelect").value;
-  const year = new Date().getFullYear();
-
-  const start = half === "1" ? new Date(year, month, 1) : new Date(year, month, 16);
-  const end = half === "1" ? new Date(year, month, 15) : new Date(year, month + 1, 0);
-
+  const { start, end } = getPeriodFromUI();
   const summary = calculateSalary(start, end);
   const msg = formatSalaryMessageEN(start, end, summary);
 
@@ -347,5 +373,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadSchedule();
   document.getElementById("generateBtn").onclick = generateSalary;
   document.getElementById("sendSalaryToTelegram").onclick = sendSalary;
-  document.getElementById("downloadImageBtn").onclick = generateScheduleImage;
+  document.getElementById("downloadImageBtn").onclick = downloadSchedulePngAndXlsx;
 });
