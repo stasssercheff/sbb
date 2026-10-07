@@ -6,7 +6,7 @@ const employeesRU = {
   "Стас": { position: "Шеф", rate: 1300 },
   "Dani": { position: "Повар", rate: 700 },
   "Hieu": { position: "Повар", rate: 700 },
-  "Hai": { position: "Повар", rate: 600 },
+  "Hai": { position: "Повар", rate: 700 },
   "Ирина": { position: "Кондитер", rate: 750 }
 
 
@@ -19,7 +19,7 @@ const employeesEN = {
   "Стас": { name: "Stas", position: "Chef", rate: 1300 },
   "Dani": { name: "Dani", position: "Cook", rate: 700 },
   "Hieu": { name: "Hieu", position: "Cook", rate: 700 },
-  "Hai": { name: "Hai", position: "Cook", rate: 600 },
+  "Hai": { name: "Hai", position: "Cook", rate: 700 },
   "Ирина": { name: "Irina", position: "Pastry", rate: 750 }
 };
 
