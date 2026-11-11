@@ -74,18 +74,12 @@ table td:first-child {
 .shift-partial { background: #d3f7c3 !important; }
 .shift-double { background: #5dde26 !important; }
 
-td.today {
-    background-color: #00ff9d !important;
-    font-weight: bold;
-    color: #000 !important;
-    box-shadow: inset 0 0 0 2px #0a7a4b;
-}
-
-/* заголовок колонки «сегодня» заметнее */
-#schedule tr:first-child td.today {
+/* «сегодня» — только Дата и День, не весь столбец смен */
+#schedule tr:nth-child(1) td.today,
+#schedule tr:nth-child(2) td.today {
     background-color: #0a7a4b !important;
     color: #fff !important;
-    box-shadow: none;
+    font-weight: bold;
 }
 
 /* Контейнер для даты — центрируем */

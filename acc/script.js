@@ -176,7 +176,8 @@ async function loadSchedule() {
         const cls = shiftCellClass(cell);
         if (cls) td.classList.add(cls);
       }
-      if (todayCols.has(cIdx)) {
+      // подсветка «сегодня» только в строках Дата и День
+      if (todayCols.has(cIdx) && rIdx <= 1) {
         td.classList.add("today");
         if (rIdx === 0) td.title = "Сегодня";
       }
