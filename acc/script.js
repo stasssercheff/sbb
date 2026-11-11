@@ -46,6 +46,50 @@ function parseDate(s) {
   return null;
 }
 
+/** Сколько смен в ячейке: 1 и 3 = целая, 0.5 / 0,5 = полсмены */
+function parseShiftValue(raw) {
+  if (raw == null) return 0;
+  const s = String(raw).trim();
+  if (!s) return 0;
+  // «3» в графике — особый код полной смены (не три смены)
+  if (s === "1" || s === "3") return 1;
+  const normalized = s.replace(",", ".");
+  if (!/^\d*\.?\d+$/.test(normalized)) return 0;
+  const n = parseFloat(normalized);
+  if (isNaN(n) || n <= 0) return 0;
+  return n;
+}
+
+function formatShifts(n) {
+  const rounded = Math.round(n * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
+function shiftCellClass(cell) {
+  const s = String(cell ?? "").trim();
+  if (s === "1") return "shift-1";
+  if (s === "0") return "shift-0";
+  if (s === "VR") return "shift-VR";
+  if (s === "3") return "shift-3";
+  const value = parseShiftValue(s);
+  if (value > 0 && value < 1) return "shift-partial";
+  if (value > 1) return "shift-double";
+  return "";
+}
+
+function shiftCellBackground(cell) {
+  const s = String(cell ?? "").trim();
+  if (s === "1") return "#a6e6a6";
+  if (s === "0") return "#f0f0f0";
+  if (s === "VR") return "#ffd966";
+  if (s === "3") return "#b4c6e7";
+  if (s === "Б") return "#ff9999";
+  const value = parseShiftValue(s);
+  if (value > 0 && value < 1) return "#d3f7c3";
+  if (value > 1) return "#5dde26";
+  return "";
+}
+
 function getPeriodFromUI() {
   const month = +document.getElementById("monthSelect").value;
   const half = document.getElementById("halfSelect").value;
@@ -93,11 +137,8 @@ function buildScheduleSliceTableElement(start, end) {
       const td = document.createElement("td");
       td.textContent = cell;
       if (rIdx > 0 && cIdx > 0) {
-        if (cell === "1") td.style.backgroundColor = "#a6e6a6";
-        else if (cell === "0") td.style.backgroundColor = "#f0f0f0";
-        else if (cell === "VR") td.style.backgroundColor = "#ffd966";
-        else if (cell === "3") td.style.backgroundColor = "#b4c6e7";
-        else if (cell === "Б") td.style.backgroundColor = "#ff9999";
+        const bg = shiftCellBackground(cell);
+        if (bg) td.style.backgroundColor = bg;
       }
       tr.appendChild(td);
     });
@@ -125,10 +166,8 @@ async function loadSchedule() {
       td.textContent = cell;
 
       if (rIdx > 0 && cIdx > 0) {
-        if (cell === "1") td.classList.add("shift-1");
-        if (cell === "0") td.classList.add("shift-0");
-        if (cell === "VR") td.classList.add("shift-VR");
-        if (cell === "3") td.classList.add("shift-3");
+        const cls = shiftCellClass(cell);
+        if (cls) td.classList.add(cls);
       }
 
       tr.appendChild(td);
@@ -180,8 +219,8 @@ function calculateSalary(periodStart, periodEnd) {
       if (!date) continue;
 
       if (date >= periodStart && date <= periodEnd) {
-        const shift = csvData[r][c].trim();
-        if (shift === "1" || shift === "3") {
+        const shiftValue = parseShiftValue(csvData[r][c]);
+        if (shiftValue > 0) {
           if (!summary[worker]) {
             summary[worker] = {
               shifts: 0,
@@ -189,7 +228,7 @@ function calculateSalary(periodStart, periodEnd) {
               manualAmount: 0
             };
           }
-          summary[worker].shifts++;
+          summary[worker].shifts += shiftValue;
         }
       }
     }
@@ -197,10 +236,16 @@ function calculateSalary(periodStart, periodEnd) {
 
   const manuals = loadManuals();
   for (let w in summary) {
+    // убираем хвосты float (0.1+0.2) и подтягиваем ручные корректировки
+    summary[w].shifts = Math.round(summary[w].shifts * 100) / 100;
     summary[w].manualAmount = parseManualAmount(manuals[w]);
   }
 
   return summary;
+}
+
+function salaryTotal(s) {
+  return Math.round(s.shifts * s.rate) + (s.manualAmount || 0);
 }
 
 // ================== ФОРМАТ СООБЩЕНИЯ ==================
@@ -211,10 +256,10 @@ function formatSalaryMessageEN(start, end, summary) {
   for (let w in summary) {
     const s = summary[w];
     const en = employeesEN[w];
-    const sum = s.shifts * s.rate + (s.manualAmount || 0);
+    const sum = salaryTotal(s);
 
     msg += `${en.name} (${en.position})\n`;
-    msg += `Shifts: ${s.shifts}\nRate: ${s.rate}\n`;
+    msg += `Shifts: ${formatShifts(s.shifts)}\nRate: ${s.rate}\n`;
     if (s.manualAmount) msg += `Adjustment: ${s.manualAmount}\n`;
     msg += `Total: ${sum}\n\n`;
 
@@ -247,7 +292,7 @@ function renderSalarySummary(start, end, summary) {
     block.style.marginBottom = "8px";
     block.style.whiteSpace = "pre-line";
 
-    block.textContent = `${name} (${pos})\nСмен: ${s.shifts}\nСтавка: ${s.rate}`;
+    block.textContent = `${name} (${pos})\nСмен: ${formatShifts(s.shifts)}\nСтавка: ${s.rate}`;
 
     const totalLine = document.createElement("div");
     totalLine.style.marginTop = "4px";
@@ -266,15 +311,14 @@ function renderSalarySummary(start, end, summary) {
       // 🔴 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
       setManualText(name, s.manualAmount);
 
-      const sum = s.shifts * s.rate + s.manualAmount;
+      const sum = salaryTotal(s);
       totalLine.textContent =
         (s.manualAmount ? `Корректировка: ${s.manualAmount}\n` : "") +
         `К выплате: ${sum}`;
 
       let all = 0;
       names.forEach(n => {
-        const x = summary[n];
-        all += x.shifts * x.rate + (x.manualAmount || 0);
+        all += salaryTotal(summary[n]);
       });
       totalDiv.textContent = `Итого к выплате: ${all}`;
     };
