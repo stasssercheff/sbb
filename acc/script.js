@@ -176,13 +176,30 @@ async function loadSchedule() {
         const cls = shiftCellClass(cell);
         if (cls) td.classList.add(cls);
       }
-      if (todayCols.has(cIdx)) td.classList.add("today");
+      if (todayCols.has(cIdx)) {
+        td.classList.add("today");
+        if (rIdx === 0) td.title = "Сегодня";
+      }
 
       tr.appendChild(td);
     });
 
     tableBody.appendChild(tr);
   });
+
+  // график длинный — сразу прокрутить к сегодняшней колонке
+  requestAnimationFrame(() => scrollScheduleToToday());
+}
+
+function scrollScheduleToToday() {
+  const todayCell = document.querySelector("#schedule td.today");
+  const container = document.querySelector(".table-container");
+  if (!todayCell || !container) return;
+
+  const cellRect = todayCell.getBoundingClientRect();
+  const contRect = container.getBoundingClientRect();
+  const delta = cellRect.left - contRect.left - contRect.width / 2 + cellRect.width / 2;
+  container.scrollLeft += delta;
 }
 
 // ================== ЛОКАЛЬНЫЕ КОРРЕКТИРОВКИ ==================
