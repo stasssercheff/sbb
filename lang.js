@@ -49,14 +49,17 @@ function switchLanguage(lang) {
     }
   });
 
-  // обновляем дату
+  // обновляем дату — всегда сегодняшняя
   const dateEl = document.getElementById("current-date");
   if (dateEl) {
-    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-    dateEl.textContent = new Date().toLocaleDateString(
-      translations.date_format?.[lang] || lang,
-      options
-    );
+    const locales = { ru: "ru-RU", en: "en-GB", vi: "vi-VN" };
+    const locale = translations.date_format?.[lang] || locales[lang] || lang;
+    dateEl.textContent = new Date().toLocaleDateString(locale, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
   }
 }
 

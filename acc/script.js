@@ -157,6 +157,13 @@ async function loadSchedule() {
 
   const tableBody = document.getElementById("schedule").querySelector("tbody");
   tableBody.innerHTML = "";
+  const today = new Date();
+  const headerRow = csvData[0] || [];
+  const todayCols = new Set();
+  for (let c = 1; c < headerRow.length; c++) {
+    const date = parseDate(headerRow[c]);
+    if (date && isSameDay(date, today)) todayCols.add(c);
+  }
 
   csvData.forEach((row, rIdx) => {
     const tr = document.createElement("tr");
@@ -169,6 +176,7 @@ async function loadSchedule() {
         const cls = shiftCellClass(cell);
         if (cls) td.classList.add(cls);
       }
+      if (todayCols.has(cIdx)) td.classList.add("today");
 
       tr.appendChild(td);
     });
@@ -412,8 +420,66 @@ async function sendSalary() {
   alert("Отправлено");
 }
 
+// ================== ДАТА И ПЕРИОД ПО УМОЛЧАНИЮ ==================
+/** Предшествующий расчётный период: 1–15 → прошлый 16–31; 16–31 → текущий 1–15 */
+function selectPrecedingSalaryPeriod(now = new Date()) {
+  const day = now.getDate();
+  let year;
+  let month;
+  let half;
+
+  if (day <= 15) {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    year = prev.getFullYear();
+    month = prev.getMonth();
+    half = "2";
+  } else {
+    year = now.getFullYear();
+    month = now.getMonth();
+    half = "1";
+  }
+
+  const yearSelect = document.getElementById("yearSelect");
+  const monthSelect = document.getElementById("monthSelect");
+  const halfSelect = document.getElementById("halfSelect");
+
+  if (yearSelect) {
+    const hasYear = [...yearSelect.options].some(o => +o.value === year);
+    if (!hasYear) {
+      const opt = document.createElement("option");
+      opt.value = String(year);
+      opt.textContent = String(year);
+      yearSelect.appendChild(opt);
+    }
+    yearSelect.value = String(year);
+  }
+  if (monthSelect) monthSelect.value = String(month);
+  if (halfSelect) halfSelect.value = half;
+}
+
+function showTodayDate() {
+  const dateEl = document.getElementById("current-date");
+  if (!dateEl) return;
+  const lang = localStorage.getItem("lang") || "ru";
+  const locales = { ru: "ru-RU", en: "en-GB", vi: "vi-VN" };
+  dateEl.textContent = new Date().toLocaleDateString(locales[lang] || "ru-RU", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
 // ================== СТАРТ ==================
 document.addEventListener("DOMContentLoaded", async () => {
+  showTodayDate();
+  selectPrecedingSalaryPeriod();
   await loadSchedule();
   document.getElementById("generateBtn").onclick = generateSalary;
   document.getElementById("sendSalaryToTelegram").onclick = sendSalary;
