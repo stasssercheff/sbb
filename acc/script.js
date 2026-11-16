@@ -111,12 +111,31 @@ function parseDayMonth(s) {
 }
 
 /**
- * Даты в таблице без года идут подряд (сен 2025 → дек 2026).
- * Без года 01.11 2025 и 01.11 2026 сливались бы в один период.
- * Если сверху есть строка «Год» — берём год из неё.
+ * В Google Sheets объединённые ячейки «Год» в CSV дают значение
+ * только в первой колонке блока, остальные пустые — протягиваем вперёд.
+ */
+function fillYearRowForward(yearRow) {
+  if (!yearRow) return null;
+  const filled = yearRow.slice();
+  let last = null;
+  for (let c = 1; c < filled.length; c++) {
+    const v = String(filled[c] || "").trim();
+    if (/^\d{4}$/.test(v)) {
+      last = v;
+    } else if (last != null && !v) {
+      filled[c] = last;
+    }
+  }
+  return filled;
+}
+
+/**
+ * Даты в таблице без года. Если есть строка «Год» — берём её
+ * (с учётом merge). Иначе восстанавливаем год по порядку колонок.
  */
 function assignHeaderDates(dateRow, startYear, yearRow) {
   const dates = new Array(dateRow.length).fill(null);
+  const yearsFilled = fillYearRowForward(yearRow);
   let year = startYear;
   let prev = null;
 
@@ -124,7 +143,7 @@ function assignHeaderDates(dateRow, startYear, yearRow) {
     const p = parseDayMonth(dateRow[c]);
     if (!p) continue;
 
-    const yearCell = yearRow ? String(yearRow[c] || "").trim() : "";
+    const yearCell = yearsFilled ? String(yearsFilled[c] || "").trim() : "";
     const yearFromRow = /^\d{4}$/.test(yearCell) ? +yearCell : null;
 
     if (p.year != null) {
@@ -144,12 +163,13 @@ function assignHeaderDates(dateRow, startYear, yearRow) {
 
 function buildHeaderDates(dateRow, preferredYear, yearRow) {
   const target = preferredYear || new Date().getFullYear();
+  const filledYearRow = fillYearRowForward(yearRow);
+  const hasYearValues = filledYearRow
+    && filledYearRow.some((v, i) => i > 0 && /^\d{4}$/.test(String(v || "").trim()));
 
-  // Если строка «Год» заполнена — этого достаточно
-  if (yearRow) {
-    const fromRow = assignHeaderDates(dateRow, target - 1, yearRow);
-    const filled = fromRow.filter(Boolean).length;
-    if (filled > 0) return fromRow;
+  // Строка «Год» (в т.ч. после merge) — главный источник
+  if (hasYearValues) {
+    return assignHeaderDates(dateRow, target, filledYearRow);
   }
 
   let fallback = null;
