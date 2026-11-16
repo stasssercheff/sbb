@@ -71,12 +71,16 @@ table td:first-child {
 .shift-0 { background: #fff7a6; }
 .shift-VR { background: #00ffff; }
 .shift-3 { background: #cce0ff; }
-.shift-partial { background: #d3f7c3 !important; }
+/* полсмены 0.5 / 0,5 — оранжевый, чтобы не сливаться с полной сменой */
+.shift-partial {
+    background: #ffb347 !important;
+    font-weight: 700;
+    color: #5a2d00;
+}
 .shift-double { background: #5dde26 !important; }
 
-/* «сегодня» — только Дата и День, не весь столбец смен */
-#schedule tr:nth-child(1) td.today,
-#schedule tr:nth-child(2) td.today {
+/* «сегодня» — строки шапки (Год / Дата / День), не смены */
+#schedule td.today {
     background-color: #0a7a4b !important;
     color: #fff !important;
     font-weight: bold;

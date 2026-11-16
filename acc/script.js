@@ -24,6 +24,10 @@ const employeesEN = {
 };
 
 let csvData = [];
+/** Абсолютные даты колонок графика (с годом), индекс = номер колонки CSV */
+let headerDates = [];
+/** Строки шапки: год (опционально), дата, день */
+let scheduleLayout = { yearRow: -1, dateRow: 0, dayRow: 1, headerRows: new Set([0, 1]) };
 
 // ================== ВСПОМОГАТЕЛЬНЫЕ ==================
 function cleanCell(cell) {
@@ -36,14 +40,151 @@ function parseCSV(text) {
   return text.trim().split("\n").map(r => r.split(delimiter).map(cleanCell));
 }
 
-function parseDate(s) {
+function rowLabel(row) {
+  return String(row?.[0] || "").trim().toLowerCase();
+}
+
+function isYearLabel(label) {
+  return label === "год" || label === "year" || label === "năm";
+}
+
+function isDateLabel(label) {
+  return label === "дата" || label === "date" || label === "ngày";
+}
+
+function isDayLabel(label) {
+  return label === "день" || label === "day" || label === "dow" || label === "thứ";
+}
+
+function looksLikeYearRow(row) {
+  if (!row) return false;
+  if (isYearLabel(rowLabel(row))) return true;
+  let years = 0;
+  let checked = 0;
+  for (let i = 1; i < Math.min(row.length, 40); i++) {
+    const v = String(row[i] || "").trim();
+    if (!v) continue;
+    checked++;
+    if (/^\d{4}$/.test(v)) years++;
+  }
+  return checked >= 3 && years / checked >= 0.5;
+}
+
+function detectScheduleLayout(rows) {
+  let yearRow = -1;
+  let dateRow = -1;
+  let dayRow = -1;
+
+  for (let r = 0; r < Math.min(rows.length, 6); r++) {
+    const label = rowLabel(rows[r]);
+    if (yearRow < 0 && (isYearLabel(label) || looksLikeYearRow(rows[r]))) {
+      yearRow = r;
+      continue;
+    }
+    if (dateRow < 0 && isDateLabel(label)) {
+      dateRow = r;
+      continue;
+    }
+    if (dayRow < 0 && isDayLabel(label)) {
+      dayRow = r;
+    }
+  }
+
+  if (dateRow < 0) dateRow = yearRow >= 0 ? yearRow + 1 : 0;
+  if (dayRow < 0) dayRow = dateRow + 1;
+
+  const headerRows = new Set([dateRow, dayRow]);
+  if (yearRow >= 0) headerRows.add(yearRow);
+
+  return { yearRow, dateRow, dayRow, headerRows };
+}
+
+/** День/месяц[/год] из заголовка ячейки графика */
+function parseDayMonth(s) {
   if (!s) return null;
-  s = s.trim().replace(/\.$/, "").replace(/\s+$/, "");
+  s = String(s).trim().replace(/\.$/, "").replace(/\s+$/, "");
   let m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  if (m) return { day: +m[1], month: +m[2] - 1, year: +m[3] };
   m = s.match(/^(\d{1,2})\.(\d{1,2})$/);
-  if (m) return new Date(new Date().getFullYear(), +m[2] - 1, +m[1]);
+  if (m) return { day: +m[1], month: +m[2] - 1, year: null };
   return null;
+}
+
+/**
+ * Даты в таблице без года идут подряд (сен 2025 → дек 2026).
+ * Без года 01.11 2025 и 01.11 2026 сливались бы в один период.
+ * Если сверху есть строка «Год» — берём год из неё.
+ */
+function assignHeaderDates(dateRow, startYear, yearRow) {
+  const dates = new Array(dateRow.length).fill(null);
+  let year = startYear;
+  let prev = null;
+
+  for (let c = 1; c < dateRow.length; c++) {
+    const p = parseDayMonth(dateRow[c]);
+    if (!p) continue;
+
+    const yearCell = yearRow ? String(yearRow[c] || "").trim() : "";
+    const yearFromRow = /^\d{4}$/.test(yearCell) ? +yearCell : null;
+
+    if (p.year != null) {
+      year = p.year;
+    } else if (yearFromRow != null) {
+      year = yearFromRow;
+    } else if (prev && new Date(year, p.month, p.day) < prev) {
+      year += 1;
+    }
+
+    const d = new Date(year, p.month, p.day);
+    dates[c] = d;
+    prev = d;
+  }
+  return dates;
+}
+
+function buildHeaderDates(dateRow, preferredYear, yearRow) {
+  const target = preferredYear || new Date().getFullYear();
+
+  // Если строка «Год» заполнена — этого достаточно
+  if (yearRow) {
+    const fromRow = assignHeaderDates(dateRow, target - 1, yearRow);
+    const filled = fromRow.filter(Boolean).length;
+    if (filled > 0) return fromRow;
+  }
+
+  let fallback = null;
+  for (const startYear of [target - 1, target, target - 2]) {
+    const dates = assignHeaderDates(dateRow, startYear, null);
+    const years = dates.filter(Boolean).map(d => d.getFullYear());
+    if (!years.length) continue;
+    const minY = Math.min(...years);
+    const maxY = Math.max(...years);
+    if (minY <= target && target <= maxY) {
+      if (maxY === target) return dates;
+      if (!fallback) fallback = dates;
+    }
+  }
+  return fallback || assignHeaderDates(dateRow, target - 1, null);
+}
+
+function refreshHeaderDates() {
+  if (!csvData.length) return;
+  scheduleLayout = detectScheduleLayout(csvData);
+  const yearHint = +document.getElementById("yearSelect")?.value || new Date().getFullYear();
+  const dateRow = csvData[scheduleLayout.dateRow] || csvData[0];
+  const yearRow = scheduleLayout.yearRow >= 0 ? csvData[scheduleLayout.yearRow] : null;
+  headerDates = buildHeaderDates(dateRow, yearHint, yearRow);
+}
+
+function parseDate(s) {
+  const p = parseDayMonth(s);
+  if (!p) return null;
+  if (p.year != null) return new Date(p.year, p.month, p.day);
+  return new Date(new Date().getFullYear(), p.month, p.day);
+}
+
+function dateAtColumn(c) {
+  return headerDates[c] || null;
 }
 
 /** Сколько смен в ячейке: 1 и 3 = целая, 0.5 / 0,5 = полсмены */
@@ -85,7 +226,8 @@ function shiftCellBackground(cell) {
   if (s === "3") return "#b4c6e7";
   if (s === "Б") return "#ff9999";
   const value = parseShiftValue(s);
-  if (value > 0 && value < 1) return "#d3f7c3";
+  // полсмены — заметный оранжевый, не путать с зелёной полной сменой
+  if (value > 0 && value < 1) return "#ffb347";
   if (value > 1) return "#5dde26";
   return "";
 }
@@ -101,21 +243,24 @@ function getPeriodFromUI() {
 
 /** Те же ячейки, что на PNG: первая колонка — имя (EN), дальше даты периода */
 function buildScheduleSliceAoA(start, end) {
-  const headerRow = csvData[0];
+  refreshHeaderDates();
+  const dateRow = csvData[scheduleLayout.dateRow] || csvData[0];
   const aoa = [];
   const head = ["Employee"];
-  for (let c = 1; c < headerRow.length; c++) {
-    const date = parseDate(headerRow[c]);
-    if (date && date >= start && date <= end) head.push(headerRow[c]);
+  for (let c = 1; c < dateRow.length; c++) {
+    const date = dateAtColumn(c);
+    if (date && date >= start && date <= end) head.push(dateRow[c]);
   }
   aoa.push(head);
 
-  for (let r = 1; r < csvData.length; r++) {
+  for (let r = 0; r < csvData.length; r++) {
+    if (scheduleLayout.headerRows.has(r)) continue;
     const ruName = csvData[r][0].trim();
+    if (!employeesEN[ruName] && !employeesRU[ruName]) continue;
     const en = employeesEN[ruName] || { name: ruName, position: "", rate: 0 };
     const row = [en.name];
-    for (let c = 1; c < headerRow.length; c++) {
-      const date = parseDate(headerRow[c]);
+    for (let c = 1; c < dateRow.length; c++) {
+      const date = dateAtColumn(c);
       if (date && date >= start && date <= end) {
         row.push(csvData[r][c]);
       }
@@ -154,32 +299,34 @@ async function loadSchedule() {
   const resp = await fetch(CSV_URL);
   const text = await resp.text();
   csvData = parseCSV(text);
+  refreshHeaderDates();
 
   const tableBody = document.getElementById("schedule").querySelector("tbody");
   tableBody.innerHTML = "";
   const today = new Date();
-  const headerRow = csvData[0] || [];
   const todayCols = new Set();
-  for (let c = 1; c < headerRow.length; c++) {
-    const date = parseDate(headerRow[c]);
+  for (let c = 1; c < headerDates.length; c++) {
+    const date = dateAtColumn(c);
     if (date && isSameDay(date, today)) todayCols.add(c);
   }
 
   csvData.forEach((row, rIdx) => {
     const tr = document.createElement("tr");
+    const isHeader = scheduleLayout.headerRows.has(rIdx);
+    const isEmployeeRow = !isHeader;
 
     row.forEach((cell, cIdx) => {
       const td = document.createElement("td");
       td.textContent = cell;
 
-      if (rIdx > 0 && cIdx > 0) {
+      if (isEmployeeRow && cIdx > 0) {
         const cls = shiftCellClass(cell);
         if (cls) td.classList.add(cls);
       }
-      // подсветка «сегодня» только в строках Дата и День
-      if (todayCols.has(cIdx) && rIdx <= 1) {
+      // подсветка «сегодня» — Год / Дата / День, не столбец смен
+      if (todayCols.has(cIdx) && isHeader) {
         td.classList.add("today");
-        if (rIdx === 0) td.title = "Сегодня";
+        if (rIdx === scheduleLayout.dateRow) td.title = "Сегодня";
       }
 
       tr.appendChild(td);
@@ -233,6 +380,7 @@ function parseManualAmount(text) {
 
 // ================== РАСЧЁТ ЗАРПЛАТЫ ==================
 function calculateSalary(periodStart, periodEnd) {
+  refreshHeaderDates();
   const summary = {};
   const headerRow = csvData[0];
 
@@ -241,7 +389,7 @@ function calculateSalary(periodStart, periodEnd) {
     if (!worker || !employeesRU[worker]) continue;
 
     for (let c = 1; c < headerRow.length; c++) {
-      const date = parseDate(headerRow[c]);
+      const date = dateAtColumn(c);
       if (!date) continue;
 
       if (date >= periodStart && date <= periodEnd) {
